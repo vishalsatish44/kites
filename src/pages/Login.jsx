@@ -1,55 +1,71 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, Navigate } from 'react-router-dom';
-import { Zap, Mail, Lock, ArrowRight, AlertCircle } from 'lucide-react';
+import { Zap, Mail, Lock, ArrowRight, AlertCircle, CheckCircle, Eye, EyeOff } from 'lucide-react';
 import { supabase, supabaseReady } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
-import { Card, Pill } from '../components/ui';
+
+const ALLOWED_DOMAIN = '@supersheldon.com';
 
 export default function Login() {
   const { session, loading } = useAuth();
   const navigate = useNavigate();
+
   const [mode, setMode] = useState('password');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPw, setShowPw] = useState(false);
   const [sent, setSent] = useState(false);
   const [error, setError] = useState(null);
   const [busy, setBusy] = useState(false);
 
-  // If we already have a session, bounce to the dashboard.
   useEffect(() => {
     if (!loading && session) navigate('/', { replace: true });
   }, [loading, session, navigate]);
 
+  if (session) return <Navigate to="/" replace />;
+
   if (!supabaseReady()) {
     return (
-      <div className="auth-shell">
-        <Card title="Supabase not configured">
-          <p className="text-muted">
-            Add <code>VITE_SUPABASE_URL</code> and <code>VITE_SUPABASE_ANON_KEY</code> to <code>.env</code> and restart the dev server.
-          </p>
-        </Card>
+      <div className="login-bg">
+        <div className="login-card">
+          <div className="login-brand">
+            <div className="login-logo-ring"><Zap size={22} style={{ fill: '#70c041', color: '#70c041' }} /></div>
+            <div>
+              <div className="login-app-name">SuperSheldon</div>
+              <div className="login-app-sub">CRM & Analytics</div>
+            </div>
+          </div>
+          <div className="login-title" style={{ marginTop: 24 }}>Not configured</div>
+          <div className="login-subtitle" style={{ marginTop: 6 }}>
+            Add <code style={{ background: 'rgba(255,255,255,0.08)', padding: '2px 6px', borderRadius: 4 }}>VITE_SUPABASE_URL</code> and{' '}
+            <code style={{ background: 'rgba(255,255,255,0.08)', padding: '2px 6px', borderRadius: 4 }}>VITE_SUPABASE_ANON_KEY</code> to .env and restart.
+          </div>
+        </div>
       </div>
     );
   }
 
-  if (session) return <Navigate to="/" replace />;
+  const checkDomain = () => {
+    if (!email.trim().toLowerCase().endsWith(ALLOWED_DOMAIN)) {
+      setError({ message: `Only ${ALLOWED_DOMAIN} accounts are allowed.` });
+      return false;
+    }
+    return true;
+  };
 
-  const signInPassword = async (e) => {
+  const signInPassword = async e => {
     e.preventDefault();
+    if (!checkDomain()) return;
     setBusy(true); setError(null);
     const { data, error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
     setBusy(false);
-    if (error) {
-      setError(error);
-      return;
-    }
-    if (data?.session) {
-      navigate('/', { replace: true });
-    }
+    if (error) { setError(error); return; }
+    if (data?.session) navigate('/', { replace: true });
   };
 
-  const sendMagic = async (e) => {
+  const sendMagic = async e => {
     e.preventDefault();
+    if (!checkDomain()) return;
     setBusy(true); setError(null);
     const { error } = await supabase.auth.signInWithOtp({
       email: email.trim(),
@@ -66,87 +82,124 @@ export default function Login() {
   const isRateLimit = errMsg.toLowerCase().includes('rate');
 
   return (
-    <div className="auth-shell">
-      <div className="auth-card">
-        <div className="auth-logo">
-          <Zap style={{ color: '#70C041', fill: '#70C041' }} size={32} />
-          <span>SuperSheldon CRM</span>
-        </div>
-        <h2>Sign in</h2>
+    <div className="login-bg">
+      <div className="login-blob login-blob-1" />
+      <div className="login-blob login-blob-2" />
 
-        <div className="tabs" style={{ marginTop: 16 }}>
-          <button className={mode === 'password' ? 'tab active' : 'tab'} onClick={() => { setMode('password'); setSent(false); setError(null); }}>
-            <Lock size={14} /> Password
+      <div className="login-card">
+        {/* Brand */}
+        <div className="login-brand">
+          <div className="login-logo-ring">
+            <Zap size={22} style={{ fill: '#70c041', color: '#70c041' }} />
+          </div>
+          <div>
+            <div className="login-app-name">SuperSheldon</div>
+            <div className="login-app-sub">CRM & Analytics</div>
+          </div>
+        </div>
+
+        <div className="login-title">Welcome back</div>
+        <div className="login-subtitle">Sign in with your @supersheldon.com account</div>
+
+        {/* Mode tabs */}
+        <div className="login-tabs">
+          <button
+            className={`login-tab${mode === 'password' ? ' active' : ''}`}
+            onClick={() => { setMode('password'); setSent(false); setError(null); }}
+          >
+            <Lock size={13} /> Password
           </button>
-          <button className={mode === 'magic' ? 'tab active' : 'tab'} onClick={() => { setMode('magic'); setError(null); }}>
-            <Mail size={14} /> Magic link
+          <button
+            className={`login-tab${mode === 'magic' ? ' active' : ''}`}
+            onClick={() => { setMode('magic'); setError(null); }}
+          >
+            <Mail size={13} /> Magic link
           </button>
         </div>
 
+        {/* Password form */}
         {mode === 'password' && (
-          <form onSubmit={signInPassword} className="auth-form">
-            <label>
-              Work email
-              <input type="email" value={email} onChange={e => setEmail(e.target.value)}
-                placeholder="you@supersheldon.com" className="btn-secondary" required autoFocus />
-            </label>
-            <label>
-              Password
-              <input type="password" value={password} onChange={e => setPassword(e.target.value)}
-                placeholder="••••••••" className="btn-secondary" required />
-            </label>
-            <button className="btn-primary" disabled={busy}>
-              {busy ? 'Signing in…' : (<>Sign in <ArrowRight size={14} /></>)}
+          <form onSubmit={signInPassword} className="login-form">
+            <div className="login-field">
+              <label>Work email</label>
+              <div className="login-input-wrap">
+                <Mail size={14} className="login-input-icon" />
+                <input
+                  type="email"
+                  value={email}
+                  onChange={e => setEmail(e.target.value)}
+                  placeholder={`you${ALLOWED_DOMAIN}`}
+                  required autoFocus autoComplete="email"
+                />
+              </div>
+            </div>
+            <div className="login-field">
+              <label>Password</label>
+              <div className="login-input-wrap">
+                <Lock size={14} className="login-input-icon" />
+                <input
+                  type={showPw ? 'text' : 'password'}
+                  value={password}
+                  onChange={e => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                  required autoComplete="current-password"
+                />
+                <button type="button" className="login-pw-toggle" onClick={() => setShowPw(s => !s)}>
+                  {showPw ? <EyeOff size={14} /> : <Eye size={14} />}
+                </button>
+              </div>
+            </div>
+            <button type="submit" className="login-btn" disabled={busy}>
+              {busy ? 'Signing in…' : <><span>Sign in</span><ArrowRight size={15} /></>}
             </button>
           </form>
         )}
 
+        {/* Magic link form */}
         {mode === 'magic' && (
           sent ? (
-            <Pill variant="success">✓ Check {email} for the sign-in link</Pill>
+            <div className="login-success">
+              <CheckCircle size={16} />
+              <span>Link sent to <strong>{email}</strong> — check your inbox</span>
+            </div>
           ) : (
-            <form onSubmit={sendMagic} className="auth-form">
-              <label>
-                Work email
-                <input type="email" value={email} onChange={e => setEmail(e.target.value)}
-                  placeholder="you@supersheldon.com" className="btn-secondary" required />
-              </label>
-              <button className="btn-primary" disabled={busy}>
-                {busy ? 'Sending…' : (<><Mail size={14} /> Send magic link</>)}
+            <form onSubmit={sendMagic} className="login-form">
+              <div className="login-field">
+                <label>Work email</label>
+                <div className="login-input-wrap">
+                  <Mail size={14} className="login-input-icon" />
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={e => setEmail(e.target.value)}
+                    placeholder={`you${ALLOWED_DOMAIN}`}
+                    required autoFocus autoComplete="email"
+                  />
+                </div>
+              </div>
+              <button type="submit" className="login-btn" disabled={busy}>
+                {busy ? 'Sending…' : <><Mail size={14} /><span>Send magic link</span></>}
               </button>
             </form>
           )
         )}
 
+        {/* Error */}
         {error && (
-          <div className="error-box" style={{ marginTop: 12 }}>
-            <AlertCircle size={18} />
+          <div className="login-error">
+            <AlertCircle size={15} style={{ flexShrink: 0, marginTop: 1 }} />
             <div>
-              <strong>{errMsg}</strong>
-              {isUnconfirmed && (
-                <p className="text-muted">
-                  Your auth user wasn't auto-confirmed. Fix in <strong>Supabase → Authentication → Users</strong>:
-                  click your row → "Confirm email". Or recreate the user with the
-                  <strong> Auto Confirm User</strong> checkbox ticked.
-                </p>
-              )}
-              {isBadCreds && (
-                <p className="text-muted">
-                  Wrong email or password. Reset via <strong>Supabase → Authentication → Users → ⋯ → Reset password</strong>.
-                </p>
-              )}
-              {isRateLimit && (
-                <p className="text-muted">
-                  Free-tier Supabase limits magic-link emails to ~3/hour. Use the <strong>Password</strong> tab instead.
-                </p>
-              )}
+              <div style={{ fontWeight: 600, marginBottom: 4 }}>{errMsg}</div>
+              {isUnconfirmed && <div className="login-error-hint">Go to Supabase → Authentication → Users → click your row → "Confirm email".</div>}
+              {isBadCreds && <div className="login-error-hint">Wrong email or password. Contact your admin to reset.</div>}
+              {isRateLimit && <div className="login-error-hint">Too many attempts. Switch to the Password tab or wait a few minutes.</div>}
             </div>
           </div>
         )}
 
-        <p className="text-muted" style={{ marginTop: 16 }}>
-          Your email must match the <code>Personal Email ID</code> on your Airtable Employe row.
-        </p>
+        <div className="login-note">
+          Access restricted to authorised @supersheldon.com accounts only.
+        </div>
       </div>
     </div>
   );

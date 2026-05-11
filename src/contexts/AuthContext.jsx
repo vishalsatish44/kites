@@ -4,6 +4,9 @@ import { APP_ROLES } from '../lib/schema';
 
 const AuthContext = createContext(null);
 
+const ALLOWED_DOMAIN = '@supersheldon.com';
+const isAllowedEmail = email => typeof email === 'string' && email.toLowerCase().endsWith(ALLOWED_DOMAIN);
+
 const DEV_KEY = 'wbr_dev_role';
 const DEV_NAME_KEY = 'wbr_dev_name';
 
@@ -25,18 +28,27 @@ export function AuthProvider({ children }) {
       setLoading(false);
       return;
     }
+    const handleSession = (s) => {
+      if (s && !isAllowedEmail(s.user?.email)) {
+        console.warn('[auth] blocked non-supersheldon.com email:', s.user?.email);
+        supabase.auth.signOut();
+        setSession(null);
+        setLoading(false);
+        return;
+      }
+      setSession(s);
+      setLoading(false);
+    };
+
     let mounted = true;
     supabase.auth.getSession().then(({ data, error }) => {
       if (!mounted) return;
       if (error) console.warn('[auth] getSession error:', error);
-      setSession(data?.session || null);
-      setLoading(false);
+      handleSession(data?.session || null);
     });
     const { data: sub } = supabase.auth.onAuthStateChange((event, s) => {
       console.log('[auth]', event, s?.user?.email);
-      setSession(s);
-      // After sign-in, always come out of loading — even if profile fetch lags
-      setLoading(false);
+      handleSession(s);
     });
     return () => {
       mounted = false;
