@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, Navigate } from 'react-router-dom';
-import { Zap, Mail, Lock, ArrowRight, AlertCircle, CheckCircle, Eye, EyeOff } from 'lucide-react';
+import {
+  Zap, Mail, Lock, ArrowRight, AlertCircle, CheckCircle, Eye, EyeOff, UserPlus,
+} from 'lucide-react';
 import { supabase, supabaseReady } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -10,13 +12,14 @@ export default function Login() {
   const { session, loading } = useAuth();
   const navigate = useNavigate();
 
-  const [mode, setMode] = useState('password');
-  const [email, setEmail] = useState('');
+  const [mode, setMode]       = useState('password');
+  const [email, setEmail]     = useState('');
   const [password, setPassword] = useState('');
-  const [showPw, setShowPw] = useState(false);
-  const [sent, setSent] = useState(false);
-  const [error, setError] = useState(null);
-  const [busy, setBusy] = useState(false);
+  const [showPw, setShowPw]   = useState(false);
+  const [sent, setSent]       = useState(false);
+  const [error, setError]     = useState(null);
+  const [busy, setBusy]       = useState(false);
+  const [status, setStatus]   = useState('');  // "Creating account…" feedback
 
   useEffect(() => {
     if (!loading && session) navigate('/', { replace: true });
@@ -45,6 +48,7 @@ export default function Login() {
     );
   }
 
+  // ── domain guard (runs before any Supabase call) ─────────────────────────
   const checkDomain = () => {
     if (!email.trim().toLowerCase().endsWith(ALLOWED_DOMAIN)) {
       setError({ message: `Only ${ALLOWED_DOMAIN} accounts are allowed.` });
@@ -53,20 +57,70 @@ export default function Login() {
     return true;
   };
 
+  // ── password sign-in with auto-register on first login ───────────────────
   const signInPassword = async e => {
     e.preventDefault();
     if (!checkDomain()) return;
-    setBusy(true); setError(null);
-    const { data, error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
+    setBusy(true); setError(null); setStatus('');
+
+    // 1. Try signing in (existing user path)
+    const { data, error: signInErr } = await supabase.auth.signInWithPassword({
+      email: email.trim(),
+      password,
+    });
+
+    if (!signInErr) {
+      if (data?.session) navigate('/', { replace: true });
+      setBusy(false);
+      return;
+    }
+
+    // 2. If credentials are wrong, try auto-registering (first-time user)
+    const isNotFound = signInErr.message.toLowerCase().includes('invalid login credentials')
+      || signInErr.message.toLowerCase().includes('user not found');
+
+    if (!isNotFound) {
+      // Some other error (rate limit, network…)
+      setError(signInErr);
+      setBusy(false);
+      return;
+    }
+
+    setStatus('First time here — creating your account…');
+
+    const { data: signUpData, error: signUpErr } = await supabase.auth.signUp({
+      email: email.trim(),
+      password,
+    });
+
+    if (signUpErr) {
+      setError(signUpErr);
+      setStatus('');
+      setBusy(false);
+      return;
+    }
+
+    // If Supabase returned a session immediately (email confirm disabled), use it.
+    if (signUpData?.session) {
+      navigate('/', { replace: true });
+      setBusy(false);
+      return;
+    }
+
+    // Email confirmation is still on — tell the user to disable it.
+    setError({
+      message: 'Account created but email confirmation is required.',
+      hint: 'confirm-required',
+    });
+    setStatus('');
     setBusy(false);
-    if (error) { setError(error); return; }
-    if (data?.session) navigate('/', { replace: true });
   };
 
+  // ── magic link ───────────────────────────────────────────────────────────
   const sendMagic = async e => {
     e.preventDefault();
     if (!checkDomain()) return;
-    setBusy(true); setError(null);
+    setBusy(true); setError(null); setStatus('');
     const { error } = await supabase.auth.signInWithOtp({
       email: email.trim(),
       options: { emailRedirectTo: window.location.origin },
@@ -76,10 +130,10 @@ export default function Login() {
     else setSent(true);
   };
 
-  const errMsg = error?.message || '';
-  const isUnconfirmed = errMsg.toLowerCase().includes('confirm') || errMsg.toLowerCase().includes('not confirmed');
-  const isBadCreds = errMsg.toLowerCase().includes('invalid login credentials');
+  const errMsg  = error?.message || '';
+  const isBadCreds  = errMsg.toLowerCase().includes('invalid login credentials');
   const isRateLimit = errMsg.toLowerCase().includes('rate');
+  const isConfirmRequired = error?.hint === 'confirm-required';
 
   return (
     <div className="login-bg">
@@ -98,20 +152,20 @@ export default function Login() {
           </div>
         </div>
 
-        <div className="login-title">Welcome back</div>
-        <div className="login-subtitle">Sign in with your @supersheldon.com account</div>
+        <div className="login-title">Welcome</div>
+        <div className="login-subtitle">Use your @supersheldon.com account · first visit auto-registers you</div>
 
         {/* Mode tabs */}
         <div className="login-tabs">
           <button
             className={`login-tab${mode === 'password' ? ' active' : ''}`}
-            onClick={() => { setMode('password'); setSent(false); setError(null); }}
+            onClick={() => { setMode('password'); setSent(false); setError(null); setStatus(''); }}
           >
             <Lock size={13} /> Password
           </button>
           <button
             className={`login-tab${mode === 'magic' ? ' active' : ''}`}
-            onClick={() => { setMode('magic'); setError(null); }}
+            onClick={() => { setMode('magic'); setError(null); setStatus(''); }}
           >
             <Mail size={13} /> Magic link
           </button>
@@ -149,8 +203,18 @@ export default function Login() {
                 </button>
               </div>
             </div>
+
+            {status && (
+              <div className="login-status">
+                <UserPlus size={14} />
+                <span>{status}</span>
+              </div>
+            )}
+
             <button type="submit" className="login-btn" disabled={busy}>
-              {busy ? 'Signing in…' : <><span>Sign in</span><ArrowRight size={15} /></>}
+              {busy
+                ? (status ? 'Setting up account…' : 'Signing in…')
+                : <><span>Continue</span><ArrowRight size={15} /></>}
             </button>
           </form>
         )}
@@ -184,21 +248,33 @@ export default function Login() {
           )
         )}
 
-        {/* Error */}
+        {/* Errors */}
         {error && (
           <div className="login-error">
             <AlertCircle size={15} style={{ flexShrink: 0, marginTop: 1 }} />
             <div>
               <div style={{ fontWeight: 600, marginBottom: 4 }}>{errMsg}</div>
-              {isUnconfirmed && <div className="login-error-hint">Go to Supabase → Authentication → Users → click your row → "Confirm email".</div>}
-              {isBadCreds && <div className="login-error-hint">Wrong email or password. Contact your admin to reset.</div>}
-              {isRateLimit && <div className="login-error-hint">Too many attempts. Switch to the Password tab or wait a few minutes.</div>}
+              {isConfirmRequired && (
+                <div className="login-error-hint">
+                  Go to <strong>Supabase → Authentication → Providers → Email</strong> and turn off <strong>"Confirm email"</strong>, then try again.
+                </div>
+              )}
+              {isBadCreds && (
+                <div className="login-error-hint">
+                  Incorrect password for this account. Use Magic link to reset access.
+                </div>
+              )}
+              {isRateLimit && (
+                <div className="login-error-hint">
+                  Too many attempts — wait a few minutes or use the Magic link tab.
+                </div>
+              )}
             </div>
           </div>
         )}
 
         <div className="login-note">
-          Access restricted to authorised @supersheldon.com accounts only.
+          Access restricted to @supersheldon.com · all sign-ins are logged
         </div>
       </div>
     </div>
