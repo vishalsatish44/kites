@@ -2,6 +2,11 @@
   command   = "npm run build"
   publish   = "dist"
 
+# These env vars hold Airtable table names / a public API URL that are also
+# hardcoded as fallbacks in source. They are not real secrets.
+[build.environment]
+  SECRETS_SCAN_OMIT_KEYS = "VITE_AIRTABLE_TABLE_AFTER_SALES,VITE_AIRTABLE_TABLE_DEMO_BOOKING,VITE_AIRTABLE_TABLE_DEMO_SCHEDULING,VITE_AIRTABLE_TABLE_DEMO_COMPLETION,VITE_AIRTABLE_TABLE_EMPLOYEES,VITE_AIRTABLE_TABLE_OLD_COLLECTION,VITE_AIRTABLE_TABLE_TEACHERS,VITE_FX_API_URL,VITE_AIRTABLE_BASE_ID"
+
 # React Router — send all routes to index.html
 [[redirects]]
   from   = "/*"
