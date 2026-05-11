@@ -1,0 +1,66 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+dist-ssr/
+
+# Environment — never commit secrets
+.env
+.env.*
+!.env.example
+
+# Claude Code local settings (may contain API keys)
+.claude/
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Local dev / misc
+*.local
+memory/
+
+# Python artefacts
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist-info/
+venv/
+.venv/
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editor
+.vscode/*
+!.vscode/extensions.json
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Reports / generated docs (large binary/text artefacts)
+*.pdf
+WBR_Dashboard_Project_Report.md
+WBR_Management_and_Sales_Report.pdf
+
+# Supabase local (docker volumes etc.)
+supabase/.branches/
+supabase/.temp/
+
+# Lock files (keep package-lock, ignore others)
+yarn.lock
+pnpm-lock.yaml

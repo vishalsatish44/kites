@@ -1,0 +1,447 @@
+/* =========================================================
+   Modern UI Styles (Inspired by FluxCRM)
+   ========================================================= */
+
+:root {
+  --modern-bg: #F4F7F6;
+  --modern-surface: #FFFFFF;
+  --modern-text: #0F172A;
+  --modern-text-muted: #64748B;
+  --modern-accent: #8CE85C; /* Bright green */
+  --modern-accent-dark: #1E4D40; /* Dark teal */
+  --modern-radius: 24px;
+  --modern-radius-sm: 12px;
+  --modern-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
+}
+
+.modern-app {
+  background-color: var(--modern-bg);
+  color: var(--modern-text);
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  min-height: 100vh;
+}
+
+/* Header / Topbar */
+.modern-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 40px;
+  background: transparent;
+}
+
+.modern-logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 700;
+  font-size: 24px;
+  color: var(--modern-text);
+}
+
+.modern-logo-icon {
+  background: var(--modern-accent);
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+}
+
+.modern-nav {
+  display: flex;
+  gap: 10px;
+  background: rgba(255, 255, 255, 0.8);
+  padding: 6px;
+  border-radius: 999px;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+}
+
+.modern-nav-item {
+  padding: 10px 20px;
+  border-radius: 999px;
+  font-weight: 500;
+  color: var(--modern-text-muted);
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.modern-nav-item:hover {
+  color: var(--modern-text);
+  background: rgba(0, 0, 0, 0.03);
+}
+
+.modern-nav-item.active {
+  background: var(--modern-accent-dark);
+  color: white;
+}
+
+.modern-actions {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.modern-action-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  background: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--modern-text);
+  cursor: pointer;
+  transition: all 0.2s;
+  position: relative;
+}
+
+.modern-action-btn:hover {
+  background: var(--modern-bg);
+  transform: translateY(-2px);
+}
+
+.modern-badge {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 8px;
+  height: 8px;
+  background: #EF4444;
+  border-radius: 50%;
+}
+
+.modern-user {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: white;
+  padding: 4px 12px 4px 4px;
+  border-radius: 999px;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.modern-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #E2E8F0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  overflow: hidden;
+}
+
+/* Page Layout */
+.modern-content {
+  padding: 20px 40px;
+}
+
+.modern-page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 30px;
+}
+
+.modern-page-title h1 {
+  font-size: 32px;
+  font-weight: 700;
+  margin: 0 0 5px 0;
+}
+
+.modern-page-title p {
+  color: var(--modern-text-muted);
+  margin: 0;
+}
+
+/* Cards */
+.modern-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.modern-card {
+  background: var(--modern-surface);
+  border-radius: var(--modern-radius);
+  padding: 16px;
+  box-shadow: var(--modern-shadow);
+  transition: all 0.3s;
+  position: relative;
+  overflow: hidden;
+}
+
+.modern-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.05);
+}
+
+.modern-card.accent {
+  background: var(--modern-accent);
+}
+
+.modern-card.accent * {
+  color: var(--modern-accent-dark);
+}
+
+.modern-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.modern-card-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--modern-text-muted);
+}
+
+.modern-card.accent .modern-card-title {
+  color: rgba(30, 77, 64, 0.7);
+}
+
+.modern-card-value {
+  font-size: 28px;
+  font-weight: 700;
+  margin-bottom: 10px;
+}
+
+.modern-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.modern-pill-success {
+  background: #DEF7EC;
+  color: #03543F;
+}
+
+.modern-card.accent .modern-pill {
+  background: rgba(255, 255, 255, 0.5);
+  color: var(--modern-accent-dark);
+}
+
+/* Charts */
+.modern-chart-container {
+  height: 150px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 15px;
+  margin-top: 20px;
+}
+
+.modern-bar {
+  flex: 1;
+  max-width: 45px;
+  background: var(--modern-accent);
+  border-radius: 12px 12px 0 0;
+  transition: height 0.3s ease;
+  position: relative;
+}
+
+.modern-bar::after {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: linear-gradient(135deg, rgba(255,255,255,0.2) 25%, transparent 25%, transparent 50%, rgba(255,255,255,0.2) 50%, rgba(255,255,255,0.2) 75%, transparent 75%, transparent);
+  background-size: 12px 12px;
+  opacity: 0.5;
+  border-radius: 12px 12px 0 0;
+}
+
+/* Gauge Chart Override */
+.modern-gauge {
+  width: 100%;
+  max-width: 150px;
+  margin: 0 auto;
+}
+
+.modern-gauge path {
+  transition: stroke 0.3s ease;
+}
+
+/* =========================================================
+   Dark Mode Overrides
+   ========================================================= */
+.dark {
+  --modern-bg: #0B0F19;
+  --modern-surface: #1E293B;
+  --modern-text: #F8FAFC;
+  --modern-text-muted: #94A3B8;
+  --modern-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3), 0 8px 10px -6px rgba(0, 0, 0, 0.3);
+}
+
+.dark .modern-card {
+  background: var(--modern-surface);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.dark .modern-card.accent {
+  background: var(--modern-accent);
+}
+
+.dark .modern-pill-success {
+  background: rgba(16, 185, 129, 0.2);
+  color: #34D399;
+}
+
+.dark .modern-action-btn {
+  background: #1E293B;
+  border-color: rgba(255, 255, 255, 0.1);
+  color: #F8FAFC;
+}
+
+.dark .modern-action-btn:hover {
+  background: #334155;
+}
+
+.dark .modern-nav {
+  background: rgba(30, 41, 59, 0.8);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.dark .modern-user {
+  background: #1E293B;
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.dark .modern-page-title h1 {
+  color: #F8FAFC;
+}
+
+.dark .modern-card-title {
+  color: #94A3B8;
+}
+
+.dark .modern-card-value {
+  color: #F8FAFC;
+}
+
+.dark .modern-card-subtitle {
+  color: #64748B;
+}
+
+.dark .modern-gauge text {
+  fill: #F8FAFC !important;
+}
+
+/* =========================================================
+   Sidebar Modernization
+   ========================================================= */
+.shell {
+  grid-template-columns: auto 1fr !important;
+}
+
+.sidebar {
+  background: #080d14;
+  border-right: 1px solid rgba(255, 255, 255, 0.05);
+  padding: 20px 10px;
+  width: 60px;
+  overflow: hidden;
+  transition: width 0.28s cubic-bezier(0.4, 0, 0.2, 1), padding 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  flex-direction: column;
+}
+
+.sidebar:hover {
+  width: 236px;
+  padding: 20px 14px;
+}
+
+.sidebar-logo {
+  color: #F8FAFC;
+  font-size: 16px;
+  font-weight: 700;
+  margin-bottom: 24px;
+  padding: 0 4px 20px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  flex-shrink: 0;
+}
+
+.sidebar-logo span {
+  opacity: 0;
+  transition: opacity 0.18s ease;
+  white-space: nowrap;
+  font-size: 15px;
+  letter-spacing: -0.3px;
+}
+
+.sidebar:hover .sidebar-logo span {
+  opacity: 1;
+}
+
+.sidebar-link {
+  color: #6b7a99;
+  border-radius: 10px;
+  padding: 10px 12px;
+  margin-bottom: 2px;
+  transition: background 0.15s, color 0.15s, transform 0.15s;
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  position: relative;
+}
+
+.sidebar-link span {
+  opacity: 0;
+  transition: opacity 0.18s ease;
+  white-space: nowrap;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.sidebar:hover .sidebar-link span {
+  opacity: 1;
+}
+
+.sidebar-link:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: #e2e8f0;
+}
+
+.sidebar-link.active {
+  background: rgba(112, 192, 65, 0.14);
+  color: #8ce85c;
+  font-weight: 600;
+}
+
+.sidebar-link.active::before {
+  content: '';
+  position: absolute;
+  left: -10px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 3px;
+  height: 60%;
+  background: #70c041;
+  border-radius: 0 3px 3px 0;
+}
+
+.sidebar:hover .sidebar-link.active::before {
+  left: -14px;
+}
+
+.sidebar-link.active svg {
+  stroke: #8ce85c;
+  filter: drop-shadow(0 0 4px rgba(112, 192, 65, 0.4));
+}
+
