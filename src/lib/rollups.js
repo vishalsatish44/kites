@@ -2,7 +2,7 @@
 
 import { dayjs, isInMonth, isInWeek, isInDay } from './dates';
 
-const PRESALES_STOPLIST = new Set(['1on1', '1 on 1', 'No', 'no', '—', '']);
+export const PRESALES_STOPLIST = new Set(['1on1', '1 on 1', 'No', 'no', '—', '']);
 
 export function filterByMonth(rows, dateField, monthDate = dayjs()) {
   return rows.filter(r => isInMonth(r[dateField], monthDate));
@@ -120,6 +120,7 @@ export function salesByAgent(afterSales, monthDate) {
 }
 
 // Demos completed per pre-sales agent (uses Demo Booking + Scheduling join)
+// "completed" = of bookings filed this month, how many have a linked scheduling record marked done
 export function demosByPresalesAgent(bookings, scheduling, monthDate) {
   const schedById = Object.fromEntries(scheduling.map(s => [s.id, s]));
   const inMonth = bookings.filter(b =>

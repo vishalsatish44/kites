@@ -1,11 +1,11 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import {
   useAfterSales, useDemoBookings, useDemoScheduling, useOldCollection,
 } from '../hooks/useAirtable';
 import { Card, Loading, ErrorBox, PageHeader, Pill } from '../components/ui';
 import { dayjs, isInMonth, isInWeek, isInDay } from '../lib/dates';
 import { salesByAgentPeriod, presalesConversionPeriod, filterByPeriod } from '../lib/rollups';
-import { formatMoney } from '../lib/currency';
+import { formatMoney, getRates } from '../lib/currency';
 import { computeSalesIncentive, computePresalesIncentive } from '../lib/incentive';
 import { useIncentiveConfigs } from '../hooks/useIncentiveConfig';
 import { Sparkles } from 'lucide-react';
@@ -61,7 +61,14 @@ const fmt = v => v >= 1_000_000 ? '₹' + (v / 1_000_000).toFixed(1) + 'M'
 export default function WBRManagement() {
   const [periodMode, setPeriodMode] = useState('month');
   const [dateStr, setDateStr] = useState(dayjs().format('YYYY-MM'));
+  const [displayCurrency, setDisplayCurrency] = useState('INR');
+  const [rates, setRates] = useState(null);
+
+  useEffect(() => {
+    getRates().then(setRates);
+  }, []);
   const [segment, setSegment] = useState('all');
+  const [country, setCountry] = useState('');
   const [wbrReport, setWbrReport] = useState('');
   const { ask, loading: aiLoading } = useGemini();
 
@@ -87,20 +94,34 @@ export default function WBRManagement() {
   const oldCol = useOldCollection();
   const { configs } = useIncentiveConfigs();
 
+  const countries = useMemo(() => {
+    const fromSales = (sales.data || []).map(s => s.country).filter(Boolean);
+    const fromBookings = (bookings.data || []).map(b => b.country).filter(Boolean);
+    return [...new Set([...fromSales, ...fromBookings])].sort();
+  }, [sales.data, bookings.data]);
+
+  const filteredSales = useMemo(() =>
+    !country ? (sales.data || []) : (sales.data || []).filter(s => s.country === country),
+  [sales.data, country]);
+
+  const filteredBookings = useMemo(() =>
+    !country ? (bookings.data || []) : (bookings.data || []).filter(b => b.country === country),
+  [bookings.data, country]);
+
   const salesAgg = useMemo(
-    () => sales.data ? salesByAgentPeriod(sales.data, dateRef, periodMode) : [],
-    [sales.data, dateRef, periodMode],
+    () => salesByAgentPeriod(filteredSales, dateRef, periodMode),
+    [filteredSales, dateRef, periodMode],
   );
   const presalesAgg = useMemo(
-    () => (sales.data && bookings.data) ? presalesConversionPeriod(bookings.data, sales.data, dateRef, periodMode) : [],
-    [bookings.data, sales.data, dateRef, periodMode],
+    () => presalesConversionPeriod(filteredBookings, filteredSales, dateRef, periodMode),
+    [filteredBookings, filteredSales, dateRef, periodMode],
   );
 
   const trendData = useMemo(() => {
     if (periodMode === 'day') {
       return Array.from({ length: 7 }, (_, i) => {
         const d = dateRef.subtract(6 - i, 'day');
-        const newSales = (sales.data || []).filter(s => isInDay(s.enrollmentDate, d)).reduce((sum, s) => sum + s.inrAmount, 0);
+        const newSales = filteredSales.filter(s => isInDay(s.enrollmentDate, d)).reduce((sum, s) => sum + s.inrAmount, 0);
         const renewals = (oldCol.data || []).filter(r => isInDay(r.paymentDate, d)).reduce((sum, r) => sum + r.amount, 0);
         return { period: d.format('D MMM'), 'New Sales': Math.round(newSales), Renewals: Math.round(renewals) };
       });
@@ -108,18 +129,18 @@ export default function WBRManagement() {
     if (periodMode === 'week') {
       return Array.from({ length: 6 }, (_, i) => {
         const w = dateRef.subtract(5 - i, 'week');
-        const newSales = (sales.data || []).filter(s => isInWeek(s.enrollmentDate, w)).reduce((sum, s) => sum + s.inrAmount, 0);
+        const newSales = filteredSales.filter(s => isInWeek(s.enrollmentDate, w)).reduce((sum, s) => sum + s.inrAmount, 0);
         const renewals = (oldCol.data || []).filter(r => isInWeek(r.paymentDate, w)).reduce((sum, r) => sum + r.amount, 0);
         return { period: `W${w.isoWeek()}`, 'New Sales': Math.round(newSales), Renewals: Math.round(renewals) };
       });
     }
     return Array.from({ length: 6 }, (_, i) => {
       const m = dayjs().subtract(5 - i, 'month');
-      const newSales = (sales.data || []).filter(s => isInMonth(s.enrollmentDate, m)).reduce((sum, s) => sum + s.inrAmount, 0);
+      const newSales = filteredSales.filter(s => isInMonth(s.enrollmentDate, m)).reduce((sum, s) => sum + s.inrAmount, 0);
       const renewals = (oldCol.data || []).filter(r => isInMonth(r.paymentDate, m)).reduce((sum, r) => sum + r.amount, 0);
       return { period: m.format("MMM 'YY"), 'New Sales': Math.round(newSales), Renewals: Math.round(renewals) };
     });
-  }, [periodMode, dateRef, sales.data, oldCol.data]);
+  }, [periodMode, dateRef, filteredSales, oldCol.data]);
 
   const agentChartData = useMemo(() =>
     salesAgg.slice(0, 8).map(a => ({
@@ -185,6 +206,16 @@ Write a concise, professional WBR narrative (4–6 paragraphs) covering: overall
             value={segment} onChange={setSegment}
             options={[['all', 'All'], ['new', 'New Sales'], ['renewal', 'Renewals']]}
           />
+          <select className="btn-secondary" value={country} onChange={e => setCountry(e.target.value)}>
+            <option value="">All Countries</option>
+            {countries.map(c => <option key={c} value={c}>{c}</option>)}
+          </select>
+          <select value={displayCurrency} onChange={e => setDisplayCurrency(e.target.value)} className="btn-secondary" style={{ fontSize: 12, padding: '4px 8px' }}>
+            <option value="INR">INR (₹)</option>
+            <option value="AUD">AUD (A$)</option>
+            <option value="GBP">GBP (£)</option>
+            <option value="USD">USD ($)</option>
+          </select>
           <ToggleGroup
             value={periodMode} onChange={switchMode}
             options={[['day', 'Day'], ['week', 'Week'], ['month', 'Month']]}
@@ -207,8 +238,8 @@ Write a concise, professional WBR narrative (4–6 paragraphs) covering: overall
       {!loading && (
         <>
           <div className="kpi-grid">
-            <Card title="Total Revenue (₹)">
-              <h2>{formatMoney(totalRevenue)}</h2>
+            <Card title={`Total Revenue (${displayCurrency})`}>
+              <h2>{formatMoney(rates ? (totalRevenue / (rates['INR'] ?? 1) * (rates[displayCurrency] ?? 1)) : totalRevenue, displayCurrency)}</h2>
               {segment === 'all' && (
                 <div className="text-muted" style={{ fontSize: 12, marginTop: 4 }}>
                   New: {formatMoney(thisMonthNew)} · Renewals: {formatMoney(thisMonthRenewals)}
@@ -294,7 +325,7 @@ Write a concise, professional WBR narrative (4–6 paragraphs) covering: overall
                       <tr key={row.agent}>
                         <td><strong>{row.agent}</strong></td>
                         <td>{row.enrollments}</td>
-                        <td>{formatMoney(row.revenue)}</td>
+                        <td>{formatMoney(rates ? (row.revenue / (rates['INR'] ?? 1) * (rates[displayCurrency] ?? 1)) : row.revenue, displayCurrency)}</td>
                         <td>{row.classes}</td>
                         <td>{formatMoney(row.avgCpc)}</td>
                         <td>{formatMoney(row.aov)}</td>
@@ -341,7 +372,7 @@ Write a concise, professional WBR narrative (4–6 paragraphs) covering: overall
                           </Pill>
                         </td>
                         <td>{formatMoney(row.aov)}</td>
-                        <td>{formatMoney(row.revenue)}</td>
+                        <td>{formatMoney(rates ? (row.revenue / (rates['INR'] ?? 1) * (rates[displayCurrency] ?? 1)) : row.revenue, displayCurrency)}</td>
                         <td>
                           <Pill variant={inc.finalIncentive > 0 ? 'success' : 'light'}>
                             {formatMoney(inc.finalIncentive)}
@@ -372,8 +403,8 @@ Write a concise, professional WBR narrative (4–6 paragraphs) covering: overall
                           <td>{r.renewedBy}</td>
                           <td>{r.department}</td>
                           <td>{r.classesSold}</td>
-                          <td>{r.currency}</td>
-                          <td>{formatMoney(r.amount, r.currency)}</td>
+                           <td>{displayCurrency}</td>
+                          <td>{formatMoney(rates ? (r.amount / (rates[r.currency || 'INR'] ?? 1) * (rates[displayCurrency] ?? 1)) : r.amount, displayCurrency)}</td>
                           <td>{r.paymentMode || '—'}</td>
                         </tr>
                       ))}

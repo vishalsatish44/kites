@@ -1,14 +1,15 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { useDemoBookings, useDemoScheduling, useAfterSales } from '../hooks/useAirtable';
 import { Card, Loading, ErrorBox, PageHeader, Pill, Kpi } from '../components/ui';
 import { dayjs, isInMonth } from '../lib/dates';
-import { demosByPresalesAgent } from '../lib/rollups';
+import { demosByPresalesAgent, PRESALES_STOPLIST } from '../lib/rollups';
 import { ClipboardList, CheckCircle2, XCircle, Clock, Sparkles, X } from 'lucide-react';
 import { useGemini } from '../hooks/useGemini';
 
 export default function DemoTracking() {
   const [month, setMonth] = useState(dayjs().format('YYYY-MM'));
   const monthDate = dayjs(month + '-01');
+  const [country, setCountry] = useState('');
 
   const { ask: askFollowUp, loading: followUpLoading } = useGemini();
   const { ask: askBriefing, loading: briefingLoading } = useGemini();
@@ -16,6 +17,7 @@ export default function DemoTracking() {
   const [activeDraft, setActiveDraft] = useState(null);
   const [draftingId, setDraftingId] = useState(null);
   const [leadBriefing, setLeadBriefing] = useState('');
+  const draftRef = useRef(null);
 
   const generateFollowUp = async (booking) => {
     setDraftingId(booking.id);
@@ -36,7 +38,10 @@ The message should:
 - Sound warm and human, not salesy
 - Be ready to copy-paste into WhatsApp (no placeholders)`;
     const result = await askFollowUp(prompt);
-    if (result) setActiveDraft({ booking, text: result });
+    if (result) {
+      setActiveDraft({ booking, text: result });
+      setTimeout(() => draftRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
+    }
     setDraftingId(null);
   };
 
@@ -44,10 +49,22 @@ The message should:
   const scheduling = useDemoScheduling();
   const sales = useAfterSales();
 
+  const countries = useMemo(() => {
+    const set = new Set((bookings.data || []).map(b => b.country).filter(Boolean));
+    return [...set].sort();
+  }, [bookings.data]);
+
+  const filteredBookings = useMemo(() => {
+    if (!bookings.data) return [];
+    if (!country) return bookings.data;
+    return bookings.data.filter(b => b.country === country);
+  }, [bookings.data, country]);
+
   const agg = useMemo(() => {
-    if (!bookings.data || !scheduling.data) return [];
-    return demosByPresalesAgent(bookings.data, scheduling.data, monthDate);
-  }, [bookings.data, scheduling.data, monthDate]);
+    if (!filteredBookings.length && !bookings.data) return [];
+    if (!scheduling.data) return [];
+    return demosByPresalesAgent(filteredBookings, scheduling.data, monthDate);
+  }, [filteredBookings, scheduling.data, monthDate]);
 
   const totals = useMemo(() => agg.reduce((acc, r) => ({
     booked: acc.booked + r.booked,
@@ -59,19 +76,18 @@ The message should:
 
   const conversionsByAgent = useMemo(() => {
     if (!sales.data || !bookings.data) return {};
-    const STOPLIST = new Set(['1on1', '1 on 1', 'No', 'no', '—', '']);
     const bookingById = {};
-    bookings.data.forEach(b => { bookingById[b.id] = b; });
+    filteredBookings.forEach(b => { bookingById[b.id] = b; });
     const out = {};
     sales.data.filter(s => isInMonth(s.enrollmentDate, monthDate)).forEach(s => {
       const ids = s.studentLinkIds || [];
       for (const id of ids) {
         const agent = bookingById[id]?.presalesAgent;
-        if (agent && !STOPLIST.has(agent)) { out[agent] = (out[agent] || 0) + 1; break; }
+        if (agent && !PRESALES_STOPLIST.has(agent)) { out[agent] = (out[agent] || 0) + 1; break; }
       }
     });
     return out;
-  }, [sales.data, bookings.data, monthDate]);
+  }, [sales.data, filteredBookings, monthDate]);
 
   // Priority = agent's conversion rate this month
   const agentConvRate = useMemo(() => {
@@ -125,8 +141,12 @@ Be specific and actionable.`;
   return (
     <>
       <PageHeader title="Demo Tracking" subtitle="Funnel: booked → scheduled → completed → converted">
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
           <input type="month" value={month} onChange={e => setMonth(e.target.value)} className="btn-secondary" />
+          <select className="btn-secondary" value={country} onChange={e => setCountry(e.target.value)}>
+            <option value="">All Countries</option>
+            {countries.map(c => <option key={c} value={c}>{c}</option>)}
+          </select>
           <button className="ai-btn" onClick={analyseLeads} disabled={briefingLoading || followUpLoading}>
             <Sparkles size={13} />
             {briefingLoading ? 'Analysing…' : 'Prioritise Leads'}
@@ -186,7 +206,7 @@ Be specific and actionable.`;
             <th>Subject</th><th>Pre-sales Agent</th><th>Demo Time (CX)</th><th>Priority</th><th></th>
           </tr></thead>
           <tbody>
-            {[...(bookings.data || [])]
+            {[...filteredBookings]
               .sort((a, b) => (b.formFillingTime || '').localeCompare(a.formFillingTime || ''))
               .slice(0, 25)
               .map(b => {
@@ -221,6 +241,7 @@ Be specific and actionable.`;
       </Card>
 
       {activeDraft && (
+        <div ref={draftRef}>
         <Card
           title={`Follow-up Draft — ${activeDraft.booking.studentName || 'Student'}`}
           subtitle={`${activeDraft.booking.subject || ''} · ${activeDraft.booking.country || ''}`}
@@ -233,6 +254,7 @@ Be specific and actionable.`;
             <button className="ai-btn-sm" style={{ marginTop: 10 }} onClick={() => navigator.clipboard?.writeText(activeDraft.text)}>Copy to clipboard</button>
           </div>
         </Card>
+        </div>
       )}
     </>
   );

@@ -69,7 +69,7 @@ export function AuthProvider({ children }) {
     (async () => {
       const { data, error } = await supabase
         .from('user_profiles')
-        .select('*, employee:employees(*)')
+        .select('*, employee:employees(*), is_super_admin')
         .eq('user_id', session.user.id)
         .maybeSingle();
       if (cancelled) return;
@@ -105,6 +105,7 @@ export function AuthProvider({ children }) {
     || devName;
   const employeeId = profile?.employee?.id || null;
   const departmentName = profile?.employee?.department || null;
+  const isSuperAdmin = profile?.is_super_admin === true;
 
   const signOut = async () => {
     if (supabaseReady()) await supabase.auth.signOut();
@@ -121,6 +122,7 @@ export function AuthProvider({ children }) {
     employeeName,
     employeeId,
     departmentName,
+    isSuperAdmin,
     devMode: !supabaseReady() || !session,
     setDev,
     signOut,

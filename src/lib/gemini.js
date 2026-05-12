@@ -18,7 +18,8 @@ export async function geminiGenerate(prompt) {
 }
 
 // Multi-turn: history = [{role:'user'|'ai', text}], newMessage = string
-export async function geminiMultiTurn(history, newMessage) {
+// systemInstruction is passed as Gemini system_instruction (not as a user message)
+export async function geminiMultiTurn(history, newMessage, systemInstruction = '') {
   const contents = [
     ...history.map(m => ({
       role: m.role === 'ai' ? 'model' : 'user',
@@ -26,6 +27,9 @@ export async function geminiMultiTurn(history, newMessage) {
     })),
     { role: 'user', parts: [{ text: newMessage }] },
   ];
-  const res = await getClient().models.generateContent({ model: GEMINI_MODEL, contents });
+  const config = systemInstruction
+    ? { systemInstruction }
+    : undefined;
+  const res = await getClient().models.generateContent({ model: GEMINI_MODEL, contents, config });
   return res.text;
 }

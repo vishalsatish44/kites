@@ -27,6 +27,13 @@ function RoleRoute({ allowed, children }) {
   return children;
 }
 
+function SuperAdminRoute({ children }) {
+  const { isSuperAdmin, devMode } = useAuth();
+  // In dev mode (no Supabase) allow access so the UI is testable
+  if (!devMode && !isSuperAdmin) return <Navigate to="/" replace />;
+  return children;
+}
+
 function RequireAuth({ children }) {
   const { session, loading } = useAuth();
   // If Supabase isn't configured, fall back to dev-mode role switcher (no login required).
@@ -61,8 +68,8 @@ export default function App() {
           <Route path="targets"       element={<RoleRoute allowed={[M]}><TargetManagement /></RoleRoute>} />
           <Route path="attendance"    element={<RoleRoute allowed={[M, S, PS]}><Attendance /></RoleRoute>} />
           <Route path="after-sales"   element={<RoleRoute allowed={[M, S, AR]}><AfterSalesData /></RoleRoute>} />
-          <Route path="incentives"    element={<RoleRoute allowed={[M]}><IncentiveConfigPage /></RoleRoute>} />
-          <Route path="admin"         element={<RoleRoute allowed={[M]}><AdminPanel /></RoleRoute>} />
+          <Route path="incentives"    element={<SuperAdminRoute><IncentiveConfigPage /></SuperAdminRoute>} />
+          <Route path="admin"         element={<SuperAdminRoute><AdminPanel /></SuperAdminRoute>} />
           <Route path="*"             element={<Navigate to="/" replace />} />
         </Route>
       </Routes>

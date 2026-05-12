@@ -23,6 +23,8 @@ export function useGemini() {
 }
 
 // Multi-turn chat (global chat widget)
+// systemContext is passed as a proper Gemini systemInstruction so it doesn't
+// pollute the conversation history and is applied to every turn.
 export function useGeminiChat() {
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -36,11 +38,7 @@ export function useGeminiChat() {
     setLoading(true);
 
     try {
-      // Inject system context only on the very first message
-      const messageToSend = systemContext && prevHistory.length === 0
-        ? `${systemContext}\n\nUser: ${text}`
-        : text;
-      const reply = await geminiMultiTurn(prevHistory, messageToSend);
+      const reply = await geminiMultiTurn(prevHistory, text, systemContext);
       const aiMsg = { role: 'ai', text: reply };
       historyRef.current = [...historyRef.current, aiMsg];
       setMessages([...historyRef.current]);

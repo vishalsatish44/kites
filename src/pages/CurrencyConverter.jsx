@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Card, PageHeader, Pill, Loading, ProgressBar } from '../components/ui';
 import { CURRENCY_OPTIONS } from '../lib/schema';
 import { getRates, convert, formatMoney } from '../lib/currency';
@@ -63,7 +63,7 @@ export default function CurrencyConverter() {
               <div className="filter-grid">
                 <div className="filter-cell">
                   <label>Amount</label>
-                  <input type="number" value={amount} onChange={e => setAmount(Number(e.target.value))} className="btn-secondary" />
+                  <NumInput value={amount} onChange={setAmount} />
                 </div>
                 <div className="filter-cell">
                   <label>From</label>
@@ -104,7 +104,7 @@ export default function CurrencyConverter() {
             <div className="filter-grid">
               <div className="filter-cell">
                 <label>Per Class Charge</label>
-                <input type="number" value={perClass} onChange={e => setPerClass(Number(e.target.value))} className="btn-secondary" />
+                <NumInput value={perClass} onChange={setPerClass} />
               </div>
               <div className="filter-cell">
                 <label>Currency</label>
@@ -114,11 +114,11 @@ export default function CurrencyConverter() {
               </div>
               <div className="filter-cell">
                 <label>Sessions Sold</label>
-                <input type="number" value={classes} onChange={e => setClasses(Number(e.target.value))} className="btn-secondary" />
+                <NumInput value={classes} onChange={setClasses} />
               </div>
               <div className="filter-cell">
                 <label>Monthly Target (₹)</label>
-                <input type="number" value={monthlyTarget} onChange={e => setMonthlyTarget(Number(e.target.value))} className="btn-secondary" />
+                <NumInput value={monthlyTarget} onChange={setMonthlyTarget} />
               </div>
             </div>
             <div className="kpi-grid" style={{ marginTop: 16 }}>
@@ -148,15 +148,15 @@ export default function CurrencyConverter() {
             <div className="filter-grid">
               <div className="filter-cell">
                 <label>Demos Booked</label>
-                <input type="number" value={psdemos} onChange={e => setPsdemoes(Number(e.target.value))} className="btn-secondary" />
+                <NumInput value={psdemos} onChange={setPsdemoes} />
               </div>
               <div className="filter-cell">
                 <label>Sales Closed</label>
-                <input type="number" value={psClosed} onChange={e => setPsClosed(Number(e.target.value))} className="btn-secondary" />
+                <NumInput value={psClosed} onChange={setPsClosed} />
               </div>
               <div className="filter-cell">
                 <label>Avg Order Value (₹)</label>
-                <input type="number" value={psAov} onChange={e => setPsAov(Number(e.target.value))} className="btn-secondary" />
+                <NumInput value={psAov} onChange={setPsAov} />
               </div>
             </div>
             <div className="kpi-grid" style={{ marginTop: 16 }}>
@@ -209,5 +209,24 @@ export default function CurrencyConverter() {
         </>
       )}
     </>
+  );
+}
+
+function NumInput({ value, onChange, step = '1' }) {
+  const [local, setLocal] = useState(String(value ?? ''));
+  const committed = useRef(value);
+  useEffect(() => {
+    if (value !== committed.current) { setLocal(String(value ?? '')); committed.current = value; }
+  }, [value]);
+  return (
+    <input type="number" step={step} className="btn-secondary"
+      value={local}
+      onChange={e => setLocal(e.target.value)}
+      onBlur={e => {
+        const n = Number(e.target.value);
+        if (Number.isFinite(n)) { committed.current = n; onChange(n); }
+        else setLocal(String(value ?? ''));
+      }}
+    />
   );
 }

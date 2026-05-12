@@ -42,7 +42,9 @@ function useUserProfiles() {
     queryKey: ['sb', 'user_profiles', 'admin'],
     queryFn: async () => {
       if (!supabaseReady()) return [];
-      const { data, error } = await supabase.from('user_profiles').select('user_id, employee_id');
+      const { data, error } = await supabase
+        .from('v_user_profiles_full')
+        .select('user_id, employee_id, is_super_admin, auth_email, full_name, app_role');
       if (error) throw error;
       return data || [];
     },
@@ -123,11 +125,7 @@ export default function AdminPanel() {
     }, {});
     return (air.data || []).map(a => {
       const s = supByAir[a.id] || null;
-      return {
-        air: a,
-        sup: s,
-        linkedUserId: s ? profileByEmp[s.id] : null,
-      };
+      return { air: a, sup: s, linkedUserId: s ? profileByEmp[s.id] : null };
     });
   }, [air.data, sup.data, profiles.data]);
 
@@ -260,6 +258,7 @@ export default function AdminPanel() {
         {[
           ['employees', 'Employees & roles'],
           ['regions', 'Regions'],
+          ['superadmins', 'Super Admins'],
           ['linkage', 'Auth ↔ Employee linkage'],
           ['onboarding', 'Onboarding'],
         ].map(([id, label]) => (
@@ -367,6 +366,10 @@ export default function AdminPanel() {
           onBulkAssign={bulkAssignRegions} />
       )}
 
+      {tab === 'superadmins' && (
+        <SuperAdminsTab profiles={profiles} qc={qc} />
+      )}
+
       {tab === 'linkage' && (
         <LinkageTab supabase={sup} profiles={profiles} qc={qc} />
       )}
@@ -432,7 +435,7 @@ function RegionsTab({ regions, qc, onBulkAssign }) {
                 <td>{r.name}</td>
                 <td>{(r.countries || []).join(', ') || <span className="text-muted">—</span>}</td>
                 <td>
-                  <button className="btn-secondary" onClick={() => delRegion.mutate(r.id)}>Delete</button>
+                  <button className="btn-secondary" onClick={() => { if (window.confirm(`Delete region "${r.name}"?`)) delRegion.mutate(r.id); }}>Delete</button>
                 </td>
               </tr>
             ))}
@@ -507,6 +510,66 @@ function ManualLink({ onSubmit, pending }) {
         </button>
       </div>
     </div>
+  );
+}
+
+function SuperAdminsTab({ profiles, qc }) {
+  const toggleSuperAdmin = useMutation({
+    mutationFn: async ({ user_id, value }) => {
+      const { error } = await supabase
+        .from('user_profiles')
+        .update({ is_super_admin: value })
+        .eq('user_id', user_id);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['sb', 'user_profiles', 'admin'] }),
+  });
+
+  const rows = profiles.data || [];
+
+  return (
+    <Card title="Super Admins"
+      subtitle="Super admins can access Admin Panel and Incentive Config. All other management users cannot.">
+      <table className="data-table">
+        <thead>
+          <tr><th>Name</th><th>Email</th><th>Role</th><th>Super Admin</th><th></th></tr>
+        </thead>
+        <tbody>
+          {rows.map(p => (
+            <tr key={p.user_id}>
+              <td><strong>{p.full_name || <span className="text-muted">Unlinked</span>}</strong></td>
+              <td>{p.auth_email || '—'}</td>
+              <td><Pill variant="default">{p.app_role || '—'}</Pill></td>
+              <td>
+                {p.is_super_admin
+                  ? <Pill variant="success">✓ Super Admin</Pill>
+                  : <Pill variant="light">Regular</Pill>}
+              </td>
+              <td>
+                <button
+                  className={p.is_super_admin ? 'btn-secondary' : 'btn-primary'}
+                  disabled={toggleSuperAdmin.isPending}
+                  onClick={() => {
+                    const label = p.full_name || p.auth_email || 'this user';
+                    const msg = p.is_super_admin
+                      ? `Remove super admin from ${label}?`
+                      : `Grant super admin to ${label}? They will get access to Admin Panel and Incentive Config.`;
+                    if (window.confirm(msg)) {
+                      toggleSuperAdmin.mutate({ user_id: p.user_id, value: !p.is_super_admin });
+                    }
+                  }}
+                >
+                  {p.is_super_admin ? 'Revoke' : 'Grant'}
+                </button>
+              </td>
+            </tr>
+          ))}
+          {!rows.length && (
+            <tr><td colSpan={5} className="text-muted">No signed-in accounts found.</td></tr>
+          )}
+        </tbody>
+      </table>
+    </Card>
   );
 }
 

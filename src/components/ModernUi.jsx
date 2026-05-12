@@ -77,7 +77,7 @@ export function ModernBarChart({ data = [], labels = [] }) {
   return (
     <div className="modern-chart-container">
       {data.map((v, i) => (
-        <div key={i} className="modern-bar" style={{ height: `${(v / max) * 100}%` }} title={`${labels[i]}: ${v}`} />
+        <div key={i} className="modern-bar" style={{ height: `${(v / max) * 100}%` }} data-tooltip={`${labels[i]}: ₹${v.toLocaleString()}`} />
       ))}
     </div>
   );

@@ -15,6 +15,7 @@ import { dayjs, isInDay } from '../lib/dates';
 import { formatMoney } from '../lib/currency';
 import '../Modern.css';
 import AiChat from './AiChat';
+import kaitesLogo from '../assets/kaites_logo.png';
 
 const NAV = [
   { to: '/',                   label: 'Overview',           icon: LayoutDashboard, roles: '*' },
@@ -30,8 +31,8 @@ const NAV = [
   { to: '/targets',            label: 'Target Mgmt',        icon: Target,          roles: [APP_ROLES.MANAGEMENT] },
   { to: '/attendance',         label: 'Attendance',         icon: Calendar,        roles: [APP_ROLES.MANAGEMENT, APP_ROLES.SALES] },
   { to: '/after-sales',        label: 'After Sales Data',   icon: FileText,        roles: [APP_ROLES.MANAGEMENT, APP_ROLES.SALES, APP_ROLES.AR] },
-  { to: '/incentives',         label: 'Incentive Config',   icon: Sliders,         roles: [APP_ROLES.MANAGEMENT] },
-  { to: '/admin',              label: 'Admin Panel',        icon: Shield,          roles: [APP_ROLES.MANAGEMENT] },
+  { to: '/incentives',         label: 'Incentive Config',   icon: Sliders,         roles: [APP_ROLES.MANAGEMENT], superAdminOnly: true },
+  { to: '/admin',              label: 'Admin Panel',        icon: Shield,          roles: [APP_ROLES.MANAGEMENT], superAdminOnly: true },
 ];
 
 // ── Notification panel ────────────────────────────────────────────────────────
@@ -130,7 +131,7 @@ function NotificationPanel({ onClose }) {
 
 export default function Shell() {
   const { isDarkMode, toggle } = useTheme();
-  const { role, employeeName, devMode, setDev, signOut } = useAuth();
+  const { role, employeeName, devMode, setDev, signOut, isSuperAdmin } = useAuth();
   const location = useLocation();
 
   const [showNotifs, setShowNotifs] = useState(false);
@@ -145,7 +146,10 @@ export default function Shell() {
     return () => document.removeEventListener('mousedown', handle);
   }, [showNotifs]);
 
-  const visible = NAV.filter(n => n.roles === '*' || n.roles.includes(role));
+  const visible = NAV.filter(n => {
+    if (n.superAdminOnly && !isSuperAdmin && !devMode) return false;
+    return n.roles === '*' || n.roles.includes(role);
+  });
 
   const currentPage = NAV.find(n =>
     n.to === '/' ? location.pathname === '/' : location.pathname.startsWith(n.to)
@@ -156,8 +160,8 @@ export default function Shell() {
     <div className={`shell ${isDarkMode ? 'dark' : ''}`}>
       <aside className="sidebar">
         <div className="sidebar-logo">
-          <Zap style={{ color: '#70C041', fill: '#70C041', flexShrink: 0 }} size={24} />
-          <span>k-AI-tes</span>
+          <img src={kaitesLogo} alt="Logo" style={{ width: 45, height: 36, flexShrink: 0, borderRadius: '4px', filter: 'drop-shadow(0 0 5px rgba(0, 255, 255, 0.5))' }} />
+
         </div>
         <nav className="sidebar-nav">
           {visible.map(n => (

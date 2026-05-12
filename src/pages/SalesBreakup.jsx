@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
-import { useAfterSales } from '../hooks/useAirtable';
-import { useFxRates } from '../hooks/useAutoSync';
+import { useAfterSales, useOldCollection } from '../hooks/useAirtable';
+import { useFxRates, toInr } from '../hooks/useAutoSync';
 import { Card, Loading, ErrorBox, PageHeader, Pill } from '../components/ui';
 import { dayjs, isInMonth } from '../lib/dates';
 import { formatMoney } from '../lib/currency';
@@ -42,10 +42,12 @@ const fmtK = v => v >= 1_000_000 ? (v / 1_000_000).toFixed(1) + 'M'
 
 export default function SalesBreakup() {
   const sales = useAfterSales();
+  const oldCol = useOldCollection();
   const { data: rates } = useFxRates();
 
   const [month, setMonth] = useState(dayjs().format('YYYY-MM'));
   const monthDate = dayjs(month + '-01');
+  const [includeCollection, setIncludeCollection] = useState(false);
 
   const [filters, setFilters] = useState({
     country: ALL, currency: ALL, agent: ALL, subject: ALL, classType: ALL,
@@ -95,6 +97,25 @@ export default function SalesBreakup() {
   const totalLive = filtered.reduce((s, r) => s + toLiveInr(r.amount, r.currency), 0);
   const totalClasses = filtered.reduce((s, r) => s + r.classesIncluded, 0);
   const liveDiff = totalLive - totalRevenue;
+
+  // Collection (renewals) for the selected month
+  const collectionRows = useMemo(() => (oldCol.data || [])
+    .filter(r => isInMonth(r.paymentDate, monthDate) && r.renewedBy && r.renewedBy !== '—'),
+  [oldCol.data, monthDate]);
+
+  const collectionRevenue = useMemo(() =>
+    collectionRows.reduce((s, r) => s + toInr(r.amount, r.currency, rates), 0),
+  [collectionRows, rates]);
+
+  const collectionByAgent = useMemo(() => {
+    const g = {};
+    collectionRows.forEach(r => {
+      if (!g[r.renewedBy]) g[r.renewedBy] = { count: 0, amount: 0 };
+      g[r.renewedBy].count++;
+      g[r.renewedBy].amount += toInr(r.amount, r.currency, rates);
+    });
+    return Object.entries(g).sort((a, b) => b[1].amount - a[1].amount);
+  }, [collectionRows, rates]);
 
   // Chart data
   const leadSourceData = useMemo(() => {
@@ -153,6 +174,14 @@ export default function SalesBreakup() {
   return (
     <>
       <PageHeader title="Sales Data Breakup" subtitle="Filter by any dimension">
+        <button
+          className={includeCollection ? 'btn-primary' : 'btn-secondary'}
+          style={{ fontSize: 12, padding: '4px 12px' }}
+          onClick={() => setIncludeCollection(v => !v)}
+          title="Include old collection / renewal payments in revenue totals"
+        >
+          {includeCollection ? '✓ Incl. Collection' : 'Excl. Collection'}
+        </button>
         <button className="btn-secondary" onClick={exportCsv} title="Export filtered rows to CSV">
           <Download size={14} /> Export CSV
         </button>
@@ -191,12 +220,12 @@ export default function SalesBreakup() {
       </Card>
 
       <div className="kpi-grid">
-        <Card title="Records"><h2>{filtered.length}</h2></Card>
-        <Card title="Revenue ₹ (logged)">
+        <Card title="New Sales Records"><h2>{filtered.length}</h2></Card>
+        <Card title="New Sales ₹ (logged)">
           <h2>{formatMoney(totalRevenue)}</h2>
           <div className="text-muted" style={{ fontSize: 12 }}>at time-of-sale rate</div>
         </Card>
-        <Card title="Revenue ₹ (live)">
+        <Card title="New Sales ₹ (live)">
           <h2 style={{ color: liveDiff >= 0 ? C.green : '#ef4444' }}>{formatMoney(totalLive)}</h2>
           <div style={{ fontSize: 12, color: liveDiff >= 0 ? C.green : '#ef4444', display: 'flex', alignItems: 'center', gap: 4 }}>
             {liveDiff >= 0 ? <TrendingUp size={12} /> : <TrendingDown size={12} />}
@@ -204,6 +233,18 @@ export default function SalesBreakup() {
           </div>
         </Card>
         <Card title="Classes Sold"><h2>{totalClasses}</h2></Card>
+        {includeCollection && (
+          <Card title="Collection Revenue ₹">
+            <h2 style={{ color: C.amber }}>{formatMoney(collectionRevenue)}</h2>
+            <div className="text-muted" style={{ fontSize: 12 }}>{collectionRows.length} renewal payments</div>
+          </Card>
+        )}
+        {includeCollection && (
+          <Card title="Total Revenue ₹" style={{ borderColor: C.green }}>
+            <h2 style={{ color: C.green }}>{formatMoney(totalLive + collectionRevenue)}</h2>
+            <div className="text-muted" style={{ fontSize: 12 }}>New sales (live) + collection</div>
+          </Card>
+        )}
       </div>
 
       {/* Charts */}
@@ -263,7 +304,34 @@ export default function SalesBreakup() {
         </Card>
       </div>
 
-      <Card title={`Records (${filtered.length})`} subtitle={rates ? `Live rate: 1 USD = ₹${(rates.INR || 0).toFixed(2)}` : 'Loading live rates…'}>
+      {includeCollection && collectionByAgent.length > 0 && (
+        <Card title={`Collection / Renewals — ${monthDate.format('MMMM YYYY')}`} subtitle={`${collectionRows.length} payments · ${formatMoney(collectionRevenue)} total`}>
+          <table className="data-table">
+            <thead><tr>
+              <th>Agent</th><th>Renewals</th><th>Amount (₹)</th><th>% of Collection</th>
+            </tr></thead>
+            <tbody>
+              {collectionByAgent.map(([agent, d]) => (
+                <tr key={agent}>
+                  <td>{agent}</td>
+                  <td>{d.count}</td>
+                  <td>{formatMoney(d.amount)}</td>
+                  <td>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <div style={{ flex: 1, height: 6, background: 'var(--border)', borderRadius: 4 }}>
+                        <div style={{ width: `${collectionRevenue > 0 ? Math.min((d.amount / collectionRevenue) * 100, 100) : 0}%`, height: '100%', borderRadius: 4, background: C.amber }} />
+                      </div>
+                      <span style={{ fontSize: 12, minWidth: 36 }}>{collectionRevenue > 0 ? ((d.amount / collectionRevenue) * 100).toFixed(1) : 0}%</span>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </Card>
+      )}
+
+      <Card title={`New Sales Records (${filtered.length})`} subtitle={rates ? `Live rate: 1 USD = ₹${(rates.INR || 0).toFixed(2)}` : 'Loading live rates…'}>
         <div style={{ overflowX: 'auto' }}>
           <table className="data-table">
             <thead>
@@ -313,7 +381,7 @@ export default function SalesBreakup() {
                   </tr>
                 );
               })}
-              {!filtered.length && <tr><td colSpan={12} className="text-muted">No matching records.</td></tr>}
+              {!filtered.length && <tr><td colSpan={12} className="text-muted">No matching new-sale records.</td></tr>}
             </tbody>
           </table>
         </div>

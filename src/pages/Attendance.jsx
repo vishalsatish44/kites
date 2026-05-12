@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useEmployees, useDemoBookings } from '../hooks/useAirtable';
-import { useAttendance, useUpsert, useIndividualTargets } from '../hooks/useSupabaseData';
+import { useAttendance, useEmployeesMirror, useUpsert, useIndividualTargets } from '../hooks/useSupabaseData';
 import { Card, Loading, ErrorBox, PageHeader, Pill } from '../components/ui';
 import { dayjs } from '../lib/dates';
 import { ROLE_FROM_DEPARTMENT, APP_ROLES } from '../lib/schema';
@@ -18,15 +18,27 @@ export default function Attendance() {
   const days = monthDate.daysInMonth();
 
   const employees = useEmployees();
+  const supEmployees = useEmployeesMirror();
   const bookings = useDemoBookings();
   const attendance = useAttendance(month);
   const targets = useIndividualTargets(month + '-01');
   const { configs } = useIncentiveConfigs();
   const upsertAttendance = useUpsert('attendance', 'employee_id,date');
 
+  // Map Airtable record ID → Supabase employees.id (UUID)
+  // attendance and individual_targets reference employees.id (UUID), not the Airtable ID
+  const airIdToSupaId = useMemo(() => {
+    const map = {};
+    (supEmployees.data || []).forEach(e => {
+      if (e.airtable_id) map[e.airtable_id] = e.id;
+    });
+    return map;
+  }, [supEmployees.data]);
+
   const teamRoles = [APP_ROLES.SALES, APP_ROLES.PRESALES, APP_ROLES.AR];
   const teamEmployees = (employees.data || []).filter(e => teamRoles.includes(ROLE_FROM_DEPARTMENT[e.department]));
 
+  // targets keyed by Supabase UUID — convert emp.id (Airtable) via airIdToSupaId
   const targetsByEmp = Object.fromEntries((targets.data || []).map(t => [t.employee_id, t]));
   const attendanceMap = useMemo(() => {
     const map = {};
@@ -62,14 +74,17 @@ export default function Attendance() {
   if (employees.isLoading) return <Loading />;
   if (employees.error) return <ErrorBox error={employees.error} />;
 
-  const setStatus = (employeeId, date, status, autoFlagged = false, reason = null) => {
-    upsertAttendance.mutate([{ employee_id: employeeId, date, status, auto_flagged: autoFlagged, reason }]);
+  const setStatus = (supaId, date, status, autoFlagged = false, reason = null) => {
+    if (!supaId) return;
+    upsertAttendance.mutate([{ employee_id: supaId, date, status, auto_flagged: autoFlagged, reason }]);
   };
 
   const autoFlagPresales = () => {
     const updates = [];
     teamEmployees.filter(e => ROLE_FROM_DEPARTMENT[e.department] === APP_ROLES.PRESALES).forEach(emp => {
-      const t = targetsByEmp[emp.id];
+      const supaId = airIdToSupaId[emp.id];
+      if (!supaId) return;
+      const t = targetsByEmp[supaId];
       const dailyTarget = t?.daily_demo_target || configs.presales.dailyDemoBookingTarget;
       for (let d = 1; d <= days; d++) {
         const date = monthDate.date(d).format('YYYY-MM-DD');
@@ -78,7 +93,7 @@ export default function Attendance() {
         const ev = evaluateDailyDemoTarget({ bookedToday: booked, config: { ...configs.presales, dailyDemoBookingTarget: dailyTarget } });
         if (ev.suggestedAttendance !== 'P') {
           updates.push({
-            employee_id: emp.id, date, status: ev.suggestedAttendance,
+            employee_id: supaId, date, status: ev.suggestedAttendance,
             auto_flagged: true, reason: `Booked ${booked}/${dailyTarget} demos`,
           });
         }
@@ -113,30 +128,37 @@ export default function Attendance() {
               </tr>
             </thead>
             <tbody>
-              {teamEmployees.map(emp => (
-                <tr key={emp.id}>
-                  <td>{emp.fullName}</td>
-                  <td>{emp.department}</td>
-                  {Array.from({ length: days }, (_, i) => i + 1).map(d => {
-                    const date = monthDate.date(d).format('YYYY-MM-DD');
-                    const cell = attendanceMap[`${emp.id}|${date}`];
-                    const variant = cell ? variantOf(cell.status) : 'light';
-                    return (
-                      <td key={d} className="attendance-cell">
-                        <select
-                          value={cell?.status || ''}
-                          onChange={e => setStatus(emp.id, date, e.target.value)}
-                          className={`attend-select ${variant}`}
-                          title={cell?.reason || ''}
-                        >
-                          <option value="">—</option>
-                          {STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
-                        </select>
-                      </td>
-                    );
-                  })}
-                </tr>
-              ))}
+              {teamEmployees.map(emp => {
+                const supaId = airIdToSupaId[emp.id];
+                return (
+                  <tr key={emp.id}>
+                    <td>
+                      {emp.fullName}
+                      {!supaId && <span style={{ color: 'var(--danger)', fontSize: 10, marginLeft: 4 }}>⚠ unlinked</span>}
+                    </td>
+                    <td>{emp.department}</td>
+                    {Array.from({ length: days }, (_, i) => i + 1).map(d => {
+                      const date = monthDate.date(d).format('YYYY-MM-DD');
+                      const cell = supaId ? attendanceMap[`${supaId}|${date}`] : null;
+                      const variant = cell ? variantOf(cell.status) : 'light';
+                      return (
+                        <td key={d} className="attendance-cell">
+                          <select
+                            value={cell?.status || ''}
+                            onChange={e => setStatus(supaId, date, e.target.value)}
+                            className={`attend-select ${variant}`}
+                            title={cell?.reason || ''}
+                            disabled={!supaId}
+                          >
+                            <option value="">—</option>
+                            {STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
+                          </select>
+                        </td>
+                      );
+                    })}
+                  </tr>
+                );
+              })}
               {!teamEmployees.length && <tr><td colSpan={days + 2}>No employees in Sales/Pre-sales/AR.</td></tr>}
             </tbody>
           </table>

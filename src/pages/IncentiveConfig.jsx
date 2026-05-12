@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Save, Plus, Trash2, RotateCcw, Beaker } from 'lucide-react';
 import { Card, PageHeader, Pill, Loading, ErrorBox } from '../components/ui';
 import { useIncentiveConfigs, useSaveIncentiveConfig } from '../hooks/useIncentiveConfig';
@@ -36,7 +36,7 @@ export default function IncentiveConfigPage() {
   return (
     <>
       <PageHeader title="Incentive Configuration" subtitle="Edit slabs, multipliers and thresholds. Saved versions are versioned by effective_from.">
-        <select className="btn-secondary" value={team} onChange={e => setTeam(e.target.value)}>
+        <select className="btn-secondary" value={team} onChange={e => { setTeam(e.target.value); setDraft(null); }}>
           {TEAMS.map(t => <option key={t.id} value={t.id}>{t.label}</option>)}
         </select>
         <button className="btn-secondary" onClick={reset}><RotateCcw size={14} /> Reset to defaults</button>
@@ -237,15 +237,39 @@ function SimulatorCard({ team, config }) {
 }
 
 function NumCell({ label, value, onChange, step = '1' }) {
+  const [local, setLocal] = useState(String(value ?? ''));
+  const committed = useRef(value);
+  useEffect(() => {
+    if (value !== committed.current) { setLocal(String(value ?? '')); committed.current = value; }
+  }, [value]);
   return (
     <div className="filter-cell">
       <label>{label}</label>
       <input type="number" step={step} className="btn-secondary"
-        value={value ?? ''} onChange={e => onChange(Number(e.target.value))} />
+        value={local}
+        onChange={e => setLocal(e.target.value)}
+        onBlur={e => {
+          const n = Number(e.target.value);
+          if (Number.isFinite(n)) { committed.current = n; onChange(n); }
+          else setLocal(String(value ?? ''));
+        }}
+      />
     </div>
   );
 }
 function InputNum({ value, onChange, step = '1' }) {
+  const [local, setLocal] = useState(String(value ?? ''));
+  const committed = useRef(value);
+  useEffect(() => {
+    if (value !== committed.current) { setLocal(String(value ?? '')); committed.current = value; }
+  }, [value]);
   return <input type="number" step={step} className="btn-secondary" style={{ width: 110 }}
-    value={value ?? ''} onChange={e => onChange(Number(e.target.value))} />;
+    value={local}
+    onChange={e => setLocal(e.target.value)}
+    onBlur={e => {
+      const n = Number(e.target.value);
+      if (Number.isFinite(n)) { committed.current = n; onChange(n); }
+      else setLocal(String(value ?? ''));
+    }}
+  />;
 }

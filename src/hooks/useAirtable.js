@@ -16,6 +16,7 @@ import {
   F_OLD_COLLECTION,
 } from '../lib/schema';
 import { currencyFromLabel } from '../lib/currency';
+import { toInr } from './useAutoSync';
 
 const STALE = 60 * 1000; // 1 min — mirror is the source of truth, refetch quickly
 
@@ -43,7 +44,12 @@ async function selectAllChunked(table) {
 // ---------------- AFTER SALES ----------------
 
 // Mirror row → UI shape (matches the live Airtable normalizer below).
-function fromMirrorAfterSales(r) {
+function fromMirrorAfterSales(r, rates) {
+  const amount = Number(r.amount) || 0;
+  const currency = r.currency || 'INR';
+  let inrAmount = Number(r.inr_amount) || 0;
+  // If Airtable's INR formula was blank/zero but we have amount + currency, self-correct
+  if (!inrAmount && amount) inrAmount = toInr(amount, currency, rates);
   return {
     id: r.airtable_id,
     batchId: r.batch_id,
@@ -57,9 +63,9 @@ function fromMirrorAfterSales(r) {
     subject: r.subject || '—',
     classesIncluded: r.classes_included || 0,
     classesMonthly: r.classes_monthly || 0,
-    amount: Number(r.amount) || 0,
+    amount,
     currencyLabel: r.currency_label,
-    currency: r.currency || 'INR',
+    currency,
     paymentMode: r.payment_mode || '—',
     paymentOption: r.payment_option || '—',
     country: r.country || '—',
@@ -70,7 +76,7 @@ function fromMirrorAfterSales(r) {
     isReferral: r.is_referral === true,
     saleNoDemo: r.sale_no_demo === true,
     cpc: Number(r.cpc) || 0,
-    inrAmount: Number(r.inr_amount) || 0,
+    inrAmount,
     studentLinkIds: r.student_link_ids || [],
     raw: r.raw,
   };
@@ -112,13 +118,22 @@ function normalizeAfterSale(rec) {
   };
 }
 
+async function fetchFxRates() {
+  try {
+    const r = await fetch('https://api.exchangerate-api.com/v4/latest/USD');
+    const j = await r.json();
+    return j.rates;
+  } catch { return null; }
+}
+
 export function useAfterSales() {
   return useQuery({
     queryKey: ['after-sales-v2'],
     queryFn: async () => {
+      const rates = await fetchFxRates();
       if (supabaseReady()) {
         const rows = await selectAllChunked('at_after_sales');
-        return rows.map(fromMirrorAfterSales);
+        return rows.map(r => fromMirrorAfterSales(r, rates));
       }
       const recs = await fetchAll(TABLES.AFTER_SALES);
       return recs.map(normalizeAfterSale);

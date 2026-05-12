@@ -1,8 +1,9 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Award, Target, TrendingUp, DollarSign, Sparkles } from 'lucide-react';
 import { useGemini } from '../hooks/useGemini';
 import { useAfterSales, useDemoBookings, useDemoScheduling } from '../hooks/useAirtable';
 import { useAuth } from '../contexts/AuthContext';
+import { useIndividualTargets } from '../hooks/useSupabaseData';
 import { Card, Kpi, Loading, ErrorBox, PageHeader, Pill, ProgressBar } from '../components/ui';
 import { MiniBarChart } from '../components/charts/Charts';
 import { dayjs, isInMonth } from '../lib/dates';
@@ -14,19 +15,22 @@ import { APP_ROLES, SALES_AGENTS } from '../lib/schema';
 import { matchAgent } from '../lib/nameMatch';
 
 export default function IndividualDashboard() {
-  const { role, employeeName, devMode, setDev } = useAuth();
+  const { role, employeeName, employeeId, devMode, setDev } = useAuth();
   const [month, setMonth] = useState(dayjs().format('YYYY-MM'));
   const monthDate = dayjs(month + '-01');
   const { ask, loading: aiLoading } = useGemini();
   const [coaching, setCoaching] = useState('');
 
   // Dev tooling — pick which agent's data to scope to.
-  const [agentName, setAgentName] = useState(employeeName);
+  const [agentName, setAgentName] = useState('');
+  // Sync agentName whenever employeeName resolves (auth loads async)
+  useEffect(() => { if (employeeName) setAgentName(emp => emp || employeeName); }, [employeeName]);
 
   const sales = useAfterSales();
   const bookings = useDemoBookings();
   const scheduling = useDemoScheduling();
   const { configs } = useIncentiveConfigs();
+  const indTargets = useIndividualTargets(month + '-01');
 
   const data = useMemo(() => {
     if (!sales.data || !bookings.data || !scheduling.data) return null;
@@ -105,8 +109,10 @@ Be encouraging but honest. Keep it under 200 words.`;
     if (result) setCoaching(result);
   };
 
-  const targetDemos = 80;
-  const targetRevenue = 500000;
+  // Pull real targets from Supabase; fall back to sensible defaults
+  const myTarget = (indTargets.data || []).find(t => t.employee_id === employeeId);
+  const targetRevenue = myTarget?.monthly_revenue_target || 500000;
+  const targetDemos = myTarget?.monthly_demo_target || 80;
 
   const salesIncentive = computeSalesIncentive({
     sales: data.mySales.map(s => ({

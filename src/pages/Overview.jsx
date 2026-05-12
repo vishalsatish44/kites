@@ -123,7 +123,9 @@ Keep it specific, not generic.`;
     const revenuePrev = sumBy(salesPrev, 'inrAmount');
     const growth = revenuePrev > 0 ? ((revenueThis - revenuePrev) / revenuePrev) * 100 : 0;
 
+    // All bookings this month — no stoplist here, we want total funnel volume
     const demosThis = bookings.data.filter(b => isInMonth(b.formFillingDate || b.formFillingTime, now));
+    // Count by when the demo actually happened (finalDemoDate) — authoritative completed count
     const completedThis = scheduling.data.filter(s => s.isCompleted && isInMonth(s.finalDemoDate, now));
 
     const months = Array.from({ length: 12 }, (_, i) => now.subtract(11 - i, 'month'));
@@ -132,9 +134,14 @@ Keep it specific, not generic.`;
 
     const conversionPct = demosThis.length > 0 ? (salesThis.length / demosThis.length) * 100 : 0;
 
+    const enrollmentGrowth = salesPrev.length > 0
+      ? ((salesThis.length - salesPrev.length) / salesPrev.length) * 100
+      : 0;
+
     return {
       revenueThis, revenuePrev, growth,
       enrollmentsThis: salesThis.length,
+      enrollmentGrowth,
       demosBooked: demosThis.length,
       demosCompleted: completedThis.length,
       conversionPct,
@@ -188,7 +195,7 @@ Keep it specific, not generic.`;
             title="Enrollments"
             value={stats.enrollmentsThis}
             isAccent={false}
-            delta="+ 12% Than last month"
+            delta={`${stats.enrollmentGrowth >= 0 ? '+' : ''}${Math.round(stats.enrollmentGrowth)}% Than last month`}
           />
           <ModernCard
             title="Conversion %"

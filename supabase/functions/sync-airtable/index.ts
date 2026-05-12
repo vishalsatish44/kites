@@ -32,6 +32,21 @@ const ccode = (label: any) => label?.match?.(/\(([A-Z]{3})\)/)?.[1] || null;
 const date  = (v: any) => { if (!v) return null; const d = new Date(v); return isNaN(d.getTime()) ? null : d.toISOString(); };
 const day   = (v: any) => { if (!v) return null; const d = new Date(v); return isNaN(d.getTime()) ? null : d.toISOString().slice(0, 10); };
 
+async function fetchFxRates(): Promise<Record<string, number> | null> {
+  try {
+    const r = await fetch('https://api.exchangerate-api.com/v4/latest/USD');
+    const j = await r.json();
+    return j.rates as Record<string, number>;
+  } catch { return null; }
+}
+
+function toInr(amount: number, currency: string | null, rates: Record<string, number> | null): number {
+  if (!amount) return 0;
+  if (!currency || currency === 'INR') return amount;
+  if (!rates) return amount; // no rates available, return raw amount as best guess
+  return (amount / (rates[currency] || 1)) * (rates['INR'] || 83);
+}
+
 async function airtableAll(table: string) {
   const out: any[] = [];
   let offset: string | undefined = undefined;
@@ -48,11 +63,18 @@ async function airtableAll(table: string) {
   return out;
 }
 
-const NORMS: Record<string, (rec: any) => any> = {
+function buildNorms(rates: Record<string, number> | null): Record<string, (rec: any) => any> {
+  return {
   'After Sales Form': (rec) => {
     const f = rec.fields;
     const inrFromCalc = first(f['INR Calculations']);
     const inrCurrency = first(f['Collection in INR']);
+    const amount = num(f["Payment Amount in Customer's Currency"]);
+    const currency = ccode(f['Currency']);
+    let inr_amount: number =
+      typeof inrFromCalc === 'number' ? inrFromCalc :
+      typeof inrCurrency === 'number' ? inrCurrency : 0;
+    if (!inr_amount && amount) inr_amount = toInr(amount, currency, rates);
     return {
       airtable_id: rec.id,
       batch_id: f['Batch ID'] || null,
@@ -62,14 +84,14 @@ const NORMS: Record<string, (rec: any) => any> = {
       team: f['Team Name'] || null,
       lead_channel: f['Lead Channel'] || null,
       lead_source: f['Lead source'] || null,
-      who_booked_demo: null, // multipleRecordLinks field — stored as student_link_ids instead
+      who_booked_demo: null,
       enrollment_type: f['Type of enrollment'] || null,
       subject: f['Subject Enrolled for'] || null,
       classes_included: num(f['No of classes included in payment']),
       classes_monthly: num(f['No of classes sold monthly']),
-      amount: num(f["Payment Amount in Customer's Currency"]),
+      amount,
       currency_label: f['Currency'] || null,
-      currency: ccode(f['Currency']),
+      currency,
       payment_mode: f['Mode of payment'] || null,
       payment_option: f['Payment Option'] || null,
       country: first(f['Country (from Student ID)']) || null,
@@ -80,7 +102,7 @@ const NORMS: Record<string, (rec: any) => any> = {
       is_referral: f['Is this a referral lead'] === 'Yes',
       sale_no_demo: f['Sale w/o Demo'] === 'Yes',
       cpc: num(f['CPC']),
-      inr_amount: typeof inrFromCalc === 'number' ? inrFromCalc : (typeof inrCurrency === 'number' ? inrCurrency : 0),
+      inr_amount,
       student_link_ids: Array.isArray(f['Student ID']) ? f['Student ID'] : [],
       raw: f,
     };
@@ -167,7 +189,8 @@ const NORMS: Record<string, (rec: any) => any> = {
       raw: f,
     };
   },
-};
+  }; // end of returned object
+} // end of buildNorms
 
 const MIRROR: Record<string, string> = {
   'After Sales Form': 'at_after_sales',
@@ -209,6 +232,9 @@ Deno.serve(async (req) => {
   const runId = run?.id;
   const counters: any = { rows_after_sales: 0, rows_demo_bookings: 0, rows_demo_scheduling: 0, rows_old_collection: 0, rows_employees: 0 };
   let hadError: string | null = null;
+
+  const rates = await fetchFxRates();
+  const NORMS = buildNorms(rates);
 
   for (const [airTable, mirror] of Object.entries(MIRROR)) {
     try {
