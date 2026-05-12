@@ -157,7 +157,7 @@ export default function Shell() {
       <aside className="sidebar">
         <div className="sidebar-logo">
           <Zap style={{ color: '#70C041', fill: '#70C041', flexShrink: 0 }} size={24} />
-          <span>SuperSheldon CRM</span>
+          <span>k-AI-tes</span>
         </div>
         <nav className="sidebar-nav">
           {visible.map(n => (

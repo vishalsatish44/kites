@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { useAfterSales, useDemoBookings, useEmployees, useOldCollection } from '../hooks/useAirtable';
 import { useAttendance, useIndividualTargets } from '../hooks/useSupabaseData';
 import { useFxRates, toInr } from '../hooks/useAutoSync';
+import { useGemini } from '../hooks/useGemini';
 import { Card, Loading, ErrorBox, PageHeader, Pill } from '../components/ui';
 import { dayjs, isInMonth } from '../lib/dates';
 import { salesByAgent, presalesConversion } from '../lib/rollups';
@@ -12,9 +13,10 @@ import { ROLE_FROM_DEPARTMENT, APP_ROLES } from '../lib/schema';
 import { findAggForEmployee } from '../lib/nameMatch';
 import { useQuery } from '@tanstack/react-query';
 import { supabase, supabaseReady } from '../lib/supabase';
+import { Sparkles, X } from 'lucide-react';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
-  Legend, ResponsiveContainer, ReferenceLine,
+  Legend, ResponsiveContainer,
 } from 'recharts';
 
 const C = { green: '#70C041', blue: '#3B82F6', amber: '#F59E0B', red: '#EF4444' };
@@ -52,6 +54,33 @@ export default function TeamPerformance() {
   const attendance = useAttendance(month);
   const { configs } = useIncentiveConfigs();
   const { data: fxRates } = useFxRates();
+  const { ask, loading: aiLoading } = useGemini();
+
+  const [renewalDraft, setRenewalDraft] = useState(null); // { id, text }
+  const [draftingRenewalId, setDraftingRenewalId] = useState(null);
+
+  const draftRenewalMsg = async (r) => {
+    setDraftingRenewalId(r.id);
+    setRenewalDraft(null);
+    const prompt = `Write a short, warm WhatsApp message that a Super Sheldon counselor can send to a parent/student to follow up on their course renewal.
+
+Renewal details:
+- Renewed by counselor: ${r.renewedBy}
+- Renewal amount: ${r.currency} ${r.amount}
+- Payment date: ${r.paymentDate ? dayjs(r.paymentDate).format('DD MMM YYYY') : 'recently'}
+- Classes sold: ${r.classesSold || 'N/A'}
+- Monthly classes: ${r.classesMonthly || 'N/A'}
+
+The message should:
+- Thank them for renewing / continuing their Super Sheldon journey
+- Mention the value of continued 1-on-1 tutoring and their progress
+- Keep it warm and personal (2–3 sentences)
+- End with an offer to help with scheduling or any questions
+- Under 80 words, ready to copy-paste into WhatsApp`;
+    const result = await ask(prompt);
+    if (result) setRenewalDraft({ id: r.id, text: result, agent: r.renewedBy });
+    setDraftingRenewalId(null);
+  };
 
   const supEmps = useQuery({
     queryKey: ['sb', 'employees', 'with-override'],
@@ -80,6 +109,11 @@ export default function TeamPerformance() {
     });
     return g;
   }, [oldCol.data, monthDate, fxRates]);
+
+  const monthRenewals = useMemo(() => (oldCol.data || [])
+    .filter(r => isInMonth(r.paymentDate, monthDate) && r.renewedBy && r.renewedBy !== '—')
+    .sort((a, b) => (b.paymentDate || '').localeCompare(a.paymentDate || '')),
+  [oldCol.data, monthDate]);
 
   const targetsByEmp = useMemo(() => {
     const map = {};
@@ -130,25 +164,14 @@ export default function TeamPerformance() {
     return { emp, row, t, att, presentPct, inc };
   };
 
-  // Chart data
   const salesChartData = salesEmployees.map(emp => {
     const { row, t, inc } = enrich(emp, salesAgg, 'sales');
-    return {
-      name: emp.fullName?.split(' ')[0],
-      Revenue: Math.round(row?.revenue || 0),
-      Target: t?.monthly_revenue_target || 0,
-      Incentive: Math.round(inc.finalIncentive),
-    };
+    return { name: emp.fullName?.split(' ')[0], Revenue: Math.round(row?.revenue || 0), Target: t?.monthly_revenue_target || 0, Incentive: Math.round(inc.finalIncentive) };
   }).filter(d => d.Revenue > 0 || d.Target > 0);
 
   const presalesChartData = [...presalesEmployees, ...extraPresalesRows].map(emp => {
     const { row } = enrich(emp, presalesAgg, 'presales');
-    return {
-      name: emp.fullName?.split(' ')[0],
-      Demos: row?.demosBooked || 0,
-      Closed: row?.salesClosed || 0,
-      'Conv%': parseFloat((row?.conversionPct || 0).toFixed(1)),
-    };
+    return { name: emp.fullName?.split(' ')[0], Demos: row?.demosBooked || 0, Closed: row?.salesClosed || 0, 'Conv%': parseFloat((row?.conversionPct || 0).toFixed(1)) };
   }).filter(d => d.Demos > 0);
 
   const renewalsChartData = Object.entries(renewalsByAgent)
@@ -271,7 +294,7 @@ export default function TeamPerformance() {
       </Card>
 
       {Object.keys(renewalsByAgent).length > 0 && (
-        <Card title="Old Collection — Renewals This Month" subtitle={`${Object.values(renewalsByAgent).reduce((s, r) => s + r.count, 0)} renewal transactions`}>
+        <Card title="Old Collection — Renewals This Month" subtitle={`${Object.values(renewalsByAgent).reduce((s, r) => s + r.count, 0)} transactions · click ✦ Draft to write a WhatsApp renewal message`}>
           <table className="data-table">
             <thead><tr><th>Agent</th><th>Renewals</th><th>Total Amount</th></tr></thead>
             <tbody>
@@ -284,6 +307,54 @@ export default function TeamPerformance() {
               ))}
             </tbody>
           </table>
+
+          {/* Individual renewal records with Draft button */}
+          {monthRenewals.length > 0 && (
+            <div style={{ marginTop: 20 }}>
+              <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Individual Records</div>
+              <table className="data-table">
+                <thead><tr>
+                  <th>Date</th><th>Renewed By</th><th>Amount</th><th>Classes</th><th>Mode</th><th></th>
+                </tr></thead>
+                <tbody>
+                  {monthRenewals.map(r => (
+                    <tr key={r.id}>
+                      <td>{r.paymentDate ? dayjs(r.paymentDate).format('DD MMM YYYY') : '—'}</td>
+                      <td>{r.renewedBy}</td>
+                      <td>{formatMoney(toInr(r.amount, r.currency, fxRates))}</td>
+                      <td>{r.classesSold || '—'}</td>
+                      <td>{r.paymentMode || '—'}</td>
+                      <td>
+                        <button
+                          className="ai-btn-sm"
+                          style={{ whiteSpace: 'nowrap' }}
+                          onClick={() => draftRenewalMsg(r)}
+                          disabled={draftingRenewalId === r.id || aiLoading}
+                          title="Draft WhatsApp renewal message"
+                        >
+                          <Sparkles size={11} style={{ verticalAlign: 'middle', marginRight: 3 }} />
+                          {draftingRenewalId === r.id ? '…' : 'Draft'}
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+
+              {renewalDraft && (
+                <div style={{ marginTop: 16, position: 'relative' }}>
+                  <div style={{ fontSize: 12, fontWeight: 600, marginBottom: 8, color: 'var(--text-muted)' }}>
+                    Renewal Message · drafted for {renewalDraft.agent}
+                  </div>
+                  <button className="ai-icon-btn" style={{ position: 'absolute', top: 0, right: 0 }} onClick={() => setRenewalDraft(null)} title="Close"><X size={13} /></button>
+                  <div className="ai-result-card" style={{ marginTop: 0 }}>
+                    <pre style={{ whiteSpace: 'pre-wrap', margin: 0, fontFamily: 'inherit', fontSize: 13, lineHeight: 1.7 }}>{renewalDraft.text}</pre>
+                  </div>
+                  <button className="ai-btn-sm" style={{ marginTop: 10 }} onClick={() => navigator.clipboard?.writeText(renewalDraft.text)}>Copy to clipboard</button>
+                </div>
+              )}
+            </div>
+          )}
         </Card>
       )}
     </>

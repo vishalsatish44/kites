@@ -353,10 +353,24 @@
   border-right: 1px solid rgba(255, 255, 255, 0.05);
   padding: 20px 10px;
   width: 60px;
-  overflow: hidden;
+  overflow-y: auto;
+  scrollbar-width: none; /* Firefox */
   transition: width 0.28s cubic-bezier(0.4, 0, 0.2, 1), padding 0.28s cubic-bezier(0.4, 0, 0.2, 1);
   display: flex;
   flex-direction: column;
+}
+
+.sidebar::-webkit-scrollbar {
+  display: none; /* Safari and Chrome */
+}
+
+.sidebar-nav {
+  overflow-y: auto;
+  scrollbar-width: none; /* Firefox */
+}
+
+.sidebar-nav::-webkit-scrollbar {
+  display: none; /* Safari and Chrome */
 }
 
 .sidebar:hover {
@@ -397,13 +411,23 @@
   transition: background 0.15s, color 0.15s, transform 0.15s;
   display: flex;
   align-items: center;
-  gap: 11px;
+  gap: 0; /* No gap when collapsed */
   position: relative;
+}
+
+.sidebar-link svg {
+  flex-shrink: 0;
+}
+
+.sidebar:hover .sidebar-link {
+  gap: 11px;
 }
 
 .sidebar-link span {
   opacity: 0;
-  transition: opacity 0.18s ease;
+  max-width: 0;
+  overflow: hidden;
+  transition: opacity 0.18s ease, max-width 0.28s ease;
   white-space: nowrap;
   font-size: 13px;
   font-weight: 500;
@@ -411,6 +435,7 @@
 
 .sidebar:hover .sidebar-link span {
   opacity: 1;
+  max-width: 200px;
 }
 
 .sidebar-link:hover {

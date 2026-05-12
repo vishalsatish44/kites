@@ -5,6 +5,8 @@ import { dayjs, isInMonth, quarterOf } from '../lib/dates';
 import { sumBy } from '../lib/rollups';
 import { formatMoney } from '../lib/currency';
 import { useAppSettings, useUpdateSetting, useFxRates, toInr } from '../hooks/useAutoSync';
+import { useGemini } from '../hooks/useGemini';
+import { Sparkles, X, TrendingUp } from 'lucide-react';
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,
   ReferenceLine, ResponsiveContainer, Legend,
@@ -40,10 +42,11 @@ export default function Goals() {
   const { data: appSettings } = useAppSettings();
   const updateSetting = useUpdateSetting();
   const { data: fxRates } = useFxRates();
+  const { ask, loading: aiLoading } = useGemini();
 
   const [goalDrafts, setGoalDrafts] = useState({});
-
   const [goals, setGoals] = useState({ monthly: 1500000, quarterly: 4500000, yearly: 18000000 });
+  const [gapPlan, setGapPlan] = useState('');
 
   useEffect(() => {
     if (!appSettings) return;
@@ -97,7 +100,6 @@ export default function Goals() {
     }));
   }, [stats, goals.monthly]);
 
-  // YTD cumulative
   const ytdChartData = useMemo(() => {
     if (!stats) return [];
     let cum = 0;
@@ -114,9 +116,51 @@ export default function Goals() {
     });
   }, [stats, goals.monthly]);
 
+  const generateGapPlan = async () => {
+    if (!stats) return;
+    const now = dayjs();
+    const daysElapsed = now.date();
+    const daysInMonth = now.daysInMonth();
+    const daysLeft = daysInMonth - daysElapsed;
+    const gap = goals.monthly - stats.monthRevenue;
+    const dailyRate = daysElapsed > 0 ? stats.monthRevenue / daysElapsed : 0;
+    const pastMonths = stats.months
+      .slice(0, now.month())
+      .map((m, i) => `${m.format('MMM')}: ₹${Math.round(stats.monthlyArr[i]).toLocaleString()}`)
+      .join(', ');
+
+    const prompt = `You are a revenue strategist for Super Sheldon, an online 1-on-1 EdTech tutoring company.
+
+Month: ${now.format('MMMM YYYY')} (Day ${daysElapsed} of ${daysInMonth})
+Days remaining: ${daysLeft}
+Revenue so far this month: ₹${Math.round(stats.monthRevenue).toLocaleString()}
+Monthly target: ₹${goals.monthly.toLocaleString()}
+Revenue gap to close: ₹${Math.round(gap).toLocaleString()}
+Revenue needed per day to close gap: ₹${daysLeft > 0 ? Math.round(gap / daysLeft).toLocaleString() : '—'}
+Current daily run rate: ₹${Math.round(dailyRate).toLocaleString()}
+${pastMonths ? `YTD monthly revenues: ${pastMonths}` : ''}
+
+Generate a specific 5-point action plan to close this ₹${Math.round(gap).toLocaleString()} gap in ${daysLeft} days. Focus on:
+1. High-priority leads to re-engage (what profiles convert fastest)
+2. Demo-to-enrollment conversion tactics for the pre-sales team
+3. Renewal/upsell opportunities from existing students
+4. Quick wins specific to the remaining days in the month
+5. One team management or incentive lever to pull
+
+Be direct, specific, and actionable. No generic advice.`;
+
+    const result = await ask(prompt);
+    if (result) setGapPlan(result);
+  };
+
   if (sales.isLoading) return <Loading />;
   if (sales.error) return <ErrorBox error={sales.error} />;
   if (!stats) return null;
+
+  const now = dayjs();
+  const daysLeft = now.daysInMonth() - now.date();
+  const gap = goals.monthly - stats.monthRevenue;
+  const isBehind = gap > 0;
 
   return (
     <>
@@ -165,6 +209,43 @@ export default function Goals() {
           </Pill>
         </Card>
       </div>
+
+      {/* Revenue Gap Closer — shows only when behind monthly target */}
+      {isBehind && (
+        <div style={{
+          background: 'var(--surface)', border: '1px solid var(--border)',
+          borderRadius: 12, padding: '20px 24px', marginBottom: 16,
+        }}>
+          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                <TrendingUp size={16} color="#ef4444" />
+                <span style={{ fontWeight: 700, fontSize: 15, color: 'var(--text)' }}>Revenue Gap Closer</span>
+                <Pill variant="danger">{formatMoney(gap)} behind</Pill>
+              </div>
+              <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>
+                {daysLeft} days left · need ₹{daysLeft > 0 ? Math.round(gap / daysLeft).toLocaleString() : '—'}/day to close
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: 8 }}>
+              {gapPlan && <button className="ai-btn-sm" onClick={() => setGapPlan('')}>Clear</button>}
+              <button className="ai-btn" onClick={generateGapPlan} disabled={aiLoading}>
+                <Sparkles size={14} />
+                {aiLoading ? 'Generating…' : 'Generate Action Plan'}
+              </button>
+            </div>
+          </div>
+          {gapPlan && (
+            <div style={{ position: 'relative', marginTop: 16 }}>
+              <button className="ai-icon-btn" style={{ position: 'absolute', top: 0, right: 0 }} onClick={() => setGapPlan('')} title="Close"><X size={13} /></button>
+              <div className="ai-result-card" style={{ marginTop: 0 }}>
+                <pre style={{ whiteSpace: 'pre-wrap', margin: 0, fontFamily: 'inherit', fontSize: 13, lineHeight: 1.7 }}>{gapPlan}</pre>
+              </div>
+              <button className="ai-btn-sm" style={{ marginTop: 10 }} onClick={() => navigator.clipboard?.writeText(gapPlan)}>Copy</button>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Charts */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 16, marginBottom: 16 }}>

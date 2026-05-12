@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { DollarSign, Users, Target, ClipboardList, MoreHorizontal, Share2, Filter, Sparkles } from 'lucide-react';
+import { DollarSign, Users, Target, ClipboardList, MoreHorizontal, Share2, Filter, Sparkles, AlertTriangle, X } from 'lucide-react';
 import { useAfterSales, useDemoBookings, useDemoScheduling } from '../hooks/useAirtable';
 import { useGemini } from '../hooks/useGemini';
 import { ModernCard, ModernPageHeader, ModernBarChart, ModernGaugeChart, ProgressBar, ModernLoading, ModernErrorBox } from '../components/ModernUi';
@@ -14,8 +14,14 @@ export default function Overview() {
   const bookings = useDemoBookings();
   const scheduling = useDemoScheduling();
   const { isDarkMode } = useTheme();
-  const { ask, loading: aiLoading } = useGemini();
+
+  const { ask: askForecast, loading: forecastLoading } = useGemini();
+  const { ask: askStandup, loading: standupLoading } = useGemini();
+  const { ask: askAnomaly, loading: anomalyLoading } = useGemini();
+
   const [forecast, setForecast] = useState('');
+  const [standup, setStandup] = useState('');
+  const [anomalyAnalysis, setAnomalyAnalysis] = useState('');
 
   const generateForecast = async () => {
     if (!stats) return;
@@ -38,8 +44,61 @@ Provide a concise month-end forecast in 3 short sections:
 1. **Projected Revenue**: Give a realistic range and most-likely figure.
 2. **Key Risks & Upside**: What could push above or below the projection?
 3. **Recommended Action**: One high-impact action to maximise month-end revenue.`;
-    const result = await ask(prompt);
+    const result = await askForecast(prompt);
     if (result) setForecast(result);
+  };
+
+  const generateStandup = async () => {
+    if (!stats) return;
+    const now = dayjs();
+    const prompt = `Generate a concise daily sales standup update for the Super Sheldon team. Format it as a WhatsApp-ready message (no markdown, use plain text with emojis).
+
+Data for ${now.format('MMMM YYYY')} (Day ${now.date()} of ${now.daysInMonth()}):
+- Revenue this month: ₹${Math.round(stats.revenueThis).toLocaleString()}
+- Month-on-month growth: ${stats.growth > 0 ? '+' : ''}${stats.growth.toFixed(1)}%
+- Enrollments this month: ${stats.enrollmentsThis}
+- Demos booked this month: ${stats.demosBooked}
+- Demos completed: ${stats.demosCompleted}
+- Demo → enrollment conversion: ${stats.conversionPct.toFixed(1)}%
+
+Write a 5-line standup message that covers:
+1. Revenue status vs pace
+2. Enrollment count and growth
+3. Demo funnel health (booked vs completed)
+4. Conversion rate status
+5. One action focus for today
+
+Make it energetic and team-friendly. Ready to paste into WhatsApp.`;
+    const result = await askStandup(prompt);
+    if (result) setStandup(result);
+  };
+
+  const analyseAnomaly = async (flags) => {
+    if (!stats) return;
+    const now = dayjs();
+    const flagDescriptions = flags.map(f => f.label).join('; ');
+    const prompt = `You are a sales analyst for Super Sheldon, an online tutoring company. Investigate why the following anomalies are occurring and suggest corrective actions.
+
+Anomalies detected: ${flagDescriptions}
+
+Current month (${now.format('MMMM YYYY')}, Day ${now.date()}):
+- Revenue: ₹${Math.round(stats.revenueThis).toLocaleString()} (${stats.growth > 0 ? '+' : ''}${stats.growth.toFixed(1)}% vs last month's ₹${Math.round(stats.revenuePrev).toLocaleString()})
+- Enrollments: ${stats.enrollmentsThis}
+- Demos booked: ${stats.demosBooked}
+- Demos completed: ${stats.demosCompleted}
+- Conversion rate: ${stats.conversionPct.toFixed(1)}%
+
+Historical monthly revenues (last 12 months):
+${stats.monthLabels.map((m, i) => `${m}: ₹${stats.monthly[i].toLocaleString()}`).join(', ')}
+
+Provide:
+**Root Cause Analysis:** (2-3 likely causes based on the data patterns)
+**Immediate Actions:** (2-3 specific things to do this week)
+**Watch Out For:** (1 risk if not addressed)
+
+Keep it specific, not generic.`;
+    const result = await askAnomaly(prompt);
+    if (result) setAnomalyAnalysis(result);
   };
 
   const stats = useMemo(() => {
@@ -56,29 +115,44 @@ Provide a concise month-end forecast in 3 short sections:
     const demosThis = bookings.data.filter(b => isInMonth(b.formFillingDate || b.formFillingTime, now));
     const completedThis = scheduling.data.filter(s => s.isCompleted && isInMonth(s.finalDemoDate, now));
 
-    // Per-month revenue for the last 12 months
     const months = Array.from({ length: 12 }, (_, i) => now.subtract(11 - i, 'month'));
     const monthly = months.map(m => sumBy(filterByMonth(sales.data, 'enrollmentDate', m), 'inrAmount'));
     const monthLabels = months.map(m => m.format('MMM'));
+
+    const conversionPct = demosThis.length > 0 ? (salesThis.length / demosThis.length) * 100 : 0;
 
     return {
       revenueThis, revenuePrev, growth,
       enrollmentsThis: salesThis.length,
       demosBooked: demosThis.length,
       demosCompleted: completedThis.length,
-      conversionPct: demosThis.length > 0 ? (salesThis.length / demosThis.length) * 100 : 0,
+      conversionPct,
       monthly, monthLabels,
     };
   }, [sales.data, bookings.data, scheduling.data]);
+
+  // Anomaly detection: revenue drop >20% OR very low conversion with meaningful volume
+  const anomalyFlags = stats ? [
+    stats.growth < -20 && {
+      type: 'revenue_drop',
+      label: `Revenue dropped ${Math.abs(stats.growth).toFixed(1)}% vs last month`,
+      severity: 'high',
+    },
+    stats.conversionPct < 10 && stats.demosBooked > 5 && {
+      type: 'low_conversion',
+      label: `Demo conversion is only ${stats.conversionPct.toFixed(1)}% (${stats.demosBooked} demos, ${stats.enrollmentsThis} sales)`,
+      severity: 'medium',
+    },
+  ].filter(Boolean) : [];
 
   const loading = sales.isLoading || bookings.isLoading || scheduling.isLoading;
   const err = sales.error || bookings.error || scheduling.error;
 
   return (
     <div className="modern-app" style={{ padding: 0 }}>
-      <ModernPageHeader 
-        title="Sales Overview" 
-        subtitle="Live company-wide KPIs from Airtable" 
+      <ModernPageHeader
+        title="Sales Overview"
+        subtitle="Live company-wide KPIs from Airtable"
         actions={
           <div style={{ display: 'flex', gap: '10px' }}>
             <button className="modern-action-btn" title="Export"><Share2 size={18} /></button>
@@ -86,28 +160,26 @@ Provide a concise month-end forecast in 3 short sections:
           </div>
         }
       />
-      
+
       {loading && <ModernLoading label="Loading dashboard…" />}
       {err && <ModernErrorBox error={err} onRetry={() => { sales.refetch(); bookings.refetch(); scheduling.refetch(); }} />}
-      
+
       {stats && (
         <div className="modern-grid" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
-          <ModernCard 
+          <ModernCard
             title="Revenue"
             value={formatMoney(stats.revenueThis, 'INR')}
             trend={true}
             delta={`${Math.round(stats.growth)}% Than last month`}
             isAccent={true}
           />
-          
-          <ModernCard 
+          <ModernCard
             title="Enrollments"
             value={stats.enrollmentsThis}
             isAccent={false}
             delta="+ 12% Than last month"
           />
-          
-          <ModernCard 
+          <ModernCard
             title="Conversion %"
             value={`${stats.conversionPct.toFixed(1)}%`}
             isAccent={false}
@@ -144,28 +216,100 @@ Provide a concise month-end forecast in 3 short sections:
         </div>
       )}
 
-      {stats && (
-        <div style={{ marginTop: 20 }}>
-          <div style={{ background: 'var(--modern-card-bg, var(--card-bg))', border: '1px solid var(--modern-border, var(--border))', borderRadius: 12, padding: '20px 24px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: forecast ? 16 : 0 }}>
-              <div>
-                <div style={{ fontWeight: 600, fontSize: 15 }}>AI Month-End Forecast</div>
-                <div style={{ fontSize: 12, color: 'var(--modern-text-muted, var(--text-muted))', marginTop: 2 }}>Gemini projection based on current pace and historical data</div>
+      {/* Anomaly Explainer — auto-surfaced when anomalies detected */}
+      {stats && anomalyFlags.length > 0 && (
+        <div style={{
+          background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.3)',
+          borderRadius: 12, padding: '20px 24px', marginTop: 20,
+        }}>
+          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                <AlertTriangle size={16} color="#ef4444" />
+                <span style={{ fontWeight: 700, fontSize: 15, color: 'var(--text)' }}>Anomaly Detected</span>
               </div>
-              <div style={{ display: 'flex', gap: 8 }}>
-                {forecast && <button className="ai-btn-sm" onClick={() => setForecast('')}>Clear</button>}
-                <button className="ai-btn" onClick={generateForecast} disabled={aiLoading}>
-                  <Sparkles size={14} />
-                  {aiLoading ? 'Forecasting…' : 'Generate Forecast'}
-                </button>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                {anomalyFlags.map(f => (
+                  <div key={f.type} style={{ fontSize: 13, color: '#ef4444', display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#ef4444', flexShrink: 0 }} />
+                    {f.label}
+                  </div>
+                ))}
               </div>
             </div>
-            {forecast && (
-              <div className="ai-result-card">
-                <pre style={{ whiteSpace: 'pre-wrap', margin: 0, fontFamily: 'inherit', fontSize: 13, lineHeight: 1.6 }}>{forecast}</pre>
-              </div>
-            )}
+            <div style={{ display: 'flex', gap: 8 }}>
+              {anomalyAnalysis && <button className="ai-btn-sm" onClick={() => setAnomalyAnalysis('')}>Clear</button>}
+              <button
+                className="ai-btn"
+                style={{ background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)' }}
+                onClick={() => analyseAnomaly(anomalyFlags)}
+                disabled={anomalyLoading}
+              >
+                <Sparkles size={14} />
+                {anomalyLoading ? 'Analysing…' : 'Explain with AI'}
+              </button>
+            </div>
           </div>
+          {anomalyAnalysis && (
+            <div style={{ position: 'relative', marginTop: 16 }}>
+              <button className="ai-icon-btn" style={{ position: 'absolute', top: 0, right: 0 }} onClick={() => setAnomalyAnalysis('')} title="Close"><X size={13} /></button>
+              <div className="ai-result-card" style={{ marginTop: 0, borderColor: 'rgba(239,68,68,0.2)' }}>
+                <pre style={{ whiteSpace: 'pre-wrap', margin: 0, fontFamily: 'inherit', fontSize: 13, lineHeight: 1.7 }}>{anomalyAnalysis}</pre>
+              </div>
+              <button className="ai-btn-sm" style={{ marginTop: 10 }} onClick={() => navigator.clipboard?.writeText(anomalyAnalysis)}>Copy</button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Daily Standup Digest */}
+      {stats && (
+        <div style={{ background: 'var(--modern-card-bg, var(--card-bg))', border: '1px solid var(--modern-border, var(--border))', borderRadius: 12, padding: '20px 24px', marginTop: 20 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: standup ? 16 : 0 }}>
+            <div>
+              <div style={{ fontWeight: 600, fontSize: 15 }}>Daily Standup Digest</div>
+              <div style={{ fontSize: 12, color: 'var(--modern-text-muted, var(--text-muted))', marginTop: 2 }}>5-line WhatsApp-ready team update from today's metrics</div>
+            </div>
+            <div style={{ display: 'flex', gap: 8 }}>
+              {standup && <button className="ai-btn-sm" onClick={() => setStandup('')}>Clear</button>}
+              <button className="ai-btn" onClick={generateStandup} disabled={standupLoading}>
+                <Sparkles size={14} />
+                {standupLoading ? 'Writing…' : 'Generate Standup'}
+              </button>
+            </div>
+          </div>
+          {standup && (
+            <div style={{ position: 'relative' }}>
+              <div className="ai-result-card">
+                <pre style={{ whiteSpace: 'pre-wrap', margin: 0, fontFamily: 'inherit', fontSize: 13, lineHeight: 1.7 }}>{standup}</pre>
+              </div>
+              <button className="ai-btn-sm" style={{ marginTop: 10 }} onClick={() => navigator.clipboard?.writeText(standup)}>Copy to clipboard</button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* AI Month-End Forecast */}
+      {stats && (
+        <div style={{ background: 'var(--modern-card-bg, var(--card-bg))', border: '1px solid var(--modern-border, var(--border))', borderRadius: 12, padding: '20px 24px', marginTop: 20 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: forecast ? 16 : 0 }}>
+            <div>
+              <div style={{ fontWeight: 600, fontSize: 15 }}>AI Month-End Forecast</div>
+              <div style={{ fontSize: 12, color: 'var(--modern-text-muted, var(--text-muted))', marginTop: 2 }}>Gemini projection based on current pace and historical data</div>
+            </div>
+            <div style={{ display: 'flex', gap: 8 }}>
+              {forecast && <button className="ai-btn-sm" onClick={() => setForecast('')}>Clear</button>}
+              <button className="ai-btn" onClick={generateForecast} disabled={forecastLoading}>
+                <Sparkles size={14} />
+                {forecastLoading ? 'Forecasting…' : 'Generate Forecast'}
+              </button>
+            </div>
+          </div>
+          {forecast && (
+            <div className="ai-result-card">
+              <pre style={{ whiteSpace: 'pre-wrap', margin: 0, fontFamily: 'inherit', fontSize: 13, lineHeight: 1.6 }}>{forecast}</pre>
+            </div>
+          )}
         </div>
       )}
     </div>
