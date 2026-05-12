@@ -3,6 +3,7 @@ import { Sparkles, X, Send, RotateCcw } from 'lucide-react';
 import { useGeminiChat } from '../hooks/useGemini';
 import { useAfterSales, useDemoBookings, useDemoScheduling, useOldCollection } from '../hooks/useAirtable';
 import { useAppSettings, useFxRates, toInr } from '../hooks/useAutoSync';
+import { useAuth } from '../contexts/AuthContext';
 import { dayjs, isInMonth } from '../lib/dates';
 import { groupBy, sumBy, PRESALES_STOPLIST } from '../lib/rollups';
 import { formatMoney } from '../lib/currency';
@@ -186,6 +187,8 @@ export default function AiChat() {
   const bottomRef = useRef(null);
   const inputRef = useRef(null);
 
+  const { employeeName, role } = useAuth();
+
   const sales       = useAfterSales();
   const bookings    = useDemoBookings();
   const scheduling  = useDemoScheduling();
@@ -200,9 +203,13 @@ export default function AiChat() {
     [sales.data, bookings.data, scheduling.data, oldCol.data, appSettings, fxRates]
   );
 
+  const userLine = employeeName
+    ? `\nCURRENT USER: ${employeeName} (role: ${role}). When they say "I", "me", "my performance", "my demos" etc., look up their name in the data snapshot above.`
+    : '';
+
   const fullContext = liveContext
-    ? `${STATIC_CONTEXT}\n\n${liveContext}`
-    : STATIC_CONTEXT;
+    ? `${STATIC_CONTEXT}\n\n${liveContext}${userLine}`
+    : `${STATIC_CONTEXT}${userLine}`;
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });

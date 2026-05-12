@@ -159,9 +159,9 @@ export default function Shell() {
   return (
     <div className={`shell ${isDarkMode ? 'dark' : ''}`}>
       <aside className="sidebar">
-        <div className="sidebar-logo">
+        <div className="sidebar-logo" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           <img src={kaitesLogo} alt="Logo" style={{ width: 45, height: 36, flexShrink: 0, borderRadius: '4px', filter: 'drop-shadow(0 0 5px rgba(0, 255, 255, 0.5))' }} />
-
+          <span style={{ fontSize: '1.25rem', fontWeight: 700, color: '#ffffff', letterSpacing: '0.05em' }}>k-AI-tes</span>
         </div>
         <nav className="sidebar-nav">
           {visible.map(n => (
