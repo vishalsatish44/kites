@@ -174,7 +174,7 @@ export default function Shell() {
         <header className="topbar">
           <div className="topbar-left">
             <div className="topbar-breadcrumb">
-              <span className="topbar-brand">SuperSheldon</span>
+              <span className="topbar-brand">k-AI-tes</span>
               <span className="topbar-sep">/</span>
               <span className="topbar-page">{currentPage?.label ?? 'Dashboard'}</span>
             </div>

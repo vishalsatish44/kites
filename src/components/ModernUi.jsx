@@ -92,7 +92,7 @@ export function ModernGaugeChart({ value = 0, max = 100 }) {
   const cy = 110;
 
   const polarToCartesian = (centerX, centerY, r, angleInDegrees) => {
-    const rad = (angleInDegrees - 180) * Math.PI / 180;
+    const rad = angleInDegrees * Math.PI / 180;
     return { x: centerX + r * Math.cos(rad), y: centerY + r * Math.sin(rad) };
   };
   

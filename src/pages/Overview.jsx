@@ -9,6 +9,17 @@ import { formatMoney } from '../lib/currency';
 import { useTheme } from '../contexts/ThemeContext';
 import '../Modern.css';
 
+function renderTextWithBold(text) {
+  if (!text) return null;
+  const parts = text.split(/(\*\*.*?\*\*)/);
+  return parts.map((part, index) => {
+    if (part.startsWith('**') && part.endsWith('**')) {
+      return <strong key={index}>{part.slice(2, -2)}</strong>;
+    }
+    return part;
+  });
+}
+
 export default function Overview() {
   const sales = useAfterSales();
   const bookings = useDemoBookings();
@@ -254,7 +265,7 @@ Keep it specific, not generic.`;
             <div style={{ position: 'relative', marginTop: 16 }}>
               <button className="ai-icon-btn" style={{ position: 'absolute', top: 0, right: 0 }} onClick={() => setAnomalyAnalysis('')} title="Close"><X size={13} /></button>
               <div className="ai-result-card" style={{ marginTop: 0, borderColor: 'rgba(239,68,68,0.2)' }}>
-                <pre style={{ whiteSpace: 'pre-wrap', margin: 0, fontFamily: 'inherit', fontSize: 13, lineHeight: 1.7 }}>{anomalyAnalysis}</pre>
+                <pre style={{ whiteSpace: 'pre-wrap', margin: 0, fontFamily: 'inherit', fontSize: 13, lineHeight: 1.7 }}>{renderTextWithBold(anomalyAnalysis)}</pre>
               </div>
               <button className="ai-btn-sm" style={{ marginTop: 10 }} onClick={() => navigator.clipboard?.writeText(anomalyAnalysis)}>Copy</button>
             </div>
@@ -307,7 +318,7 @@ Keep it specific, not generic.`;
           </div>
           {forecast && (
             <div className="ai-result-card">
-              <pre style={{ whiteSpace: 'pre-wrap', margin: 0, fontFamily: 'inherit', fontSize: 13, lineHeight: 1.6 }}>{forecast}</pre>
+              <pre style={{ whiteSpace: 'pre-wrap', margin: 0, fontFamily: 'inherit', fontSize: 13, lineHeight: 1.6 }}>{renderTextWithBold(forecast)}</pre>
             </div>
           )}
         </div>
