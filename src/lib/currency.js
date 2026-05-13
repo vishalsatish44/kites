@@ -46,8 +46,16 @@ export function currencyFromLabel(label) {
 export function formatMoney(amount, code = 'INR') {
   if (amount == null || isNaN(amount)) return '—';
   const n = Number(amount);
+  
+  // PRIMARY FIX: Respect the provided currency code for formatting.
+  // If no code or 'INR' is provided, use Indian locale formatting.
   try {
-    return new Intl.NumberFormat('en-IN', { style: 'currency', currency: code, maximumFractionDigits: 0 }).format(n);
+    const locale = code === 'INR' ? 'en-IN' : (code === 'USD' || code === 'AUD' || code === 'NZD' || code === 'CAD' ? 'en-US' : 'en-GB');
+    return new Intl.NumberFormat(locale, { 
+      style: 'currency', 
+      currency: code, 
+      maximumFractionDigits: 0 
+    }).format(n);
   } catch {
     return `${code} ${n.toLocaleString('en-IN')}`;
   }
