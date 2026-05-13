@@ -47,9 +47,11 @@ async function selectAllChunked(table) {
 function fromMirrorAfterSales(r, rates) {
   const amount = Number(r.amount) || 0;
   const currency = r.currency || 'INR';
-  let inrAmount = Number(r.inr_amount) || 0;
-  // If Airtable's INR formula was blank/zero but we have amount + currency, self-correct
-  if (!inrAmount && amount) inrAmount = toInr(amount, currency, rates);
+  
+  // PRIMARY FIX: Always recalculate INR amount from the Source Amount and Currency
+  // using current FX rates to ensure accuracy, regardless of what's stored in the mirror column.
+  let inrAmount = toInr(amount, currency, rates);
+  
   return {
     id: r.airtable_id,
     batchId: r.batch_id,
@@ -324,14 +326,18 @@ export function useEmployees() {
 
 // ---------------- OLD COLLECTION (renewals) ----------------
 
-function fromMirrorOldCollection(r) {
+function fromMirrorOldCollection(r, rates) {
+  const amount = Number(r.amount) || 0;
+  const currency = r.currency || 'INR';
+  const inrAmount = toInr(amount, currency, rates);
   return {
     id: r.airtable_id,
     classesSold: r.classes_sold || 0,
     classesMonthly: r.classes_monthly || 0,
     currencyLabel: r.currency_label,
-    currency: r.currency || 'INR',
-    amount: Number(r.amount) || 0,
+    currency,
+    amount,
+    inrAmount,
     renewedBy: r.renewed_by || '—',
     department: r.department || '—',
     paymentDate: r.payment_date,
@@ -359,9 +365,10 @@ export function useOldCollection() {
   return useQuery({
     queryKey: ['old-collection-v2'],
     queryFn: async () => {
+      const rates = await fetchFxRates();
       if (supabaseReady()) {
         const rows = await selectAllChunked('at_old_collection');
-        return rows.map(fromMirrorOldCollection);
+        return rows.map(r => fromMirrorOldCollection(r, rates));
       }
       const recs = await fetchAll(TABLES.OLD_COLLECTION);
       return recs.map(normalizeOldCollection);

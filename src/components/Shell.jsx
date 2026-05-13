@@ -10,7 +10,7 @@ import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
 import { APP_ROLES } from '../lib/schema';
 import { useAfterSales } from '../hooks/useAirtable';
-import { useAppSettings } from '../hooks/useAutoSync';
+import { useAppSettings, useAutoSync } from '../hooks/useAutoSync';
 import { dayjs, isInDay } from '../lib/dates';
 import { formatMoney } from '../lib/currency';
 import '../Modern.css';
@@ -130,6 +130,7 @@ function NotificationPanel({ onClose }) {
 // ── Shell ─────────────────────────────────────────────────────────────────────
 
 export default function Shell() {
+  useAutoSync(); // Enable background sync
   const { isDarkMode, toggle } = useTheme();
   const { role, employeeName, devMode, setDev, signOut, isSuperAdmin } = useAuth();
   const location = useLocation();

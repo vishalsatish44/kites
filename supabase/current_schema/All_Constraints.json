@@ -1,0 +1,206 @@
+[
+  {
+    "definition": "PRIMARY KEY (id)",
+    "table_name": "regions",
+    "constraint_name": "regions_pkey",
+    "constraint_type": "p"
+  },
+  {
+    "definition": "UNIQUE (name)",
+    "table_name": "regions",
+    "constraint_name": "regions_name_key",
+    "constraint_type": "u"
+  },
+  {
+    "definition": "PRIMARY KEY (id)",
+    "table_name": "employees",
+    "constraint_name": "employees_pkey",
+    "constraint_type": "p"
+  },
+  {
+    "definition": "UNIQUE (airtable_id)",
+    "table_name": "employees",
+    "constraint_name": "employees_airtable_id_key",
+    "constraint_type": "u"
+  },
+  {
+    "definition": "UNIQUE (email)",
+    "table_name": "employees",
+    "constraint_name": "employees_email_key",
+    "constraint_type": "u"
+  },
+  {
+    "definition": "FOREIGN KEY (region_id) REFERENCES regions(id) ON DELETE SET NULL",
+    "table_name": "employees",
+    "constraint_name": "employees_region_id_fkey",
+    "constraint_type": "f"
+  },
+  {
+    "definition": "PRIMARY KEY (user_id)",
+    "table_name": "user_profiles",
+    "constraint_name": "user_profiles_pkey",
+    "constraint_type": "p"
+  },
+  {
+    "definition": "FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE",
+    "table_name": "user_profiles",
+    "constraint_name": "user_profiles_user_id_fkey",
+    "constraint_type": "f"
+  },
+  {
+    "definition": "FOREIGN KEY (employee_id) REFERENCES employees(id) ON DELETE SET NULL",
+    "table_name": "user_profiles",
+    "constraint_name": "user_profiles_employee_id_fkey",
+    "constraint_type": "f"
+  },
+  {
+    "definition": "CHECK ((team = ANY (ARRAY['sales'::text, 'presales'::text, 'ar'::text])))",
+    "table_name": "region_targets",
+    "constraint_name": "region_targets_team_check",
+    "constraint_type": "c"
+  },
+  {
+    "definition": "PRIMARY KEY (id)",
+    "table_name": "region_targets",
+    "constraint_name": "region_targets_pkey",
+    "constraint_type": "p"
+  },
+  {
+    "definition": "UNIQUE (region_id, team, period_month)",
+    "table_name": "region_targets",
+    "constraint_name": "region_targets_region_id_team_period_month_key",
+    "constraint_type": "u"
+  },
+  {
+    "definition": "FOREIGN KEY (region_id) REFERENCES regions(id) ON DELETE CASCADE",
+    "table_name": "region_targets",
+    "constraint_name": "region_targets_region_id_fkey",
+    "constraint_type": "f"
+  },
+  {
+    "definition": "PRIMARY KEY (id)",
+    "table_name": "individual_targets",
+    "constraint_name": "individual_targets_pkey",
+    "constraint_type": "p"
+  },
+  {
+    "definition": "UNIQUE (employee_id, period_month)",
+    "table_name": "individual_targets",
+    "constraint_name": "individual_targets_employee_id_period_month_key",
+    "constraint_type": "u"
+  },
+  {
+    "definition": "FOREIGN KEY (employee_id) REFERENCES employees(id) ON DELETE CASCADE",
+    "table_name": "individual_targets",
+    "constraint_name": "individual_targets_employee_id_fkey",
+    "constraint_type": "f"
+  },
+  {
+    "definition": "CHECK ((status = ANY (ARRAY['P'::text, 'A'::text, 'L'::text, 'HALF'::text, 'LOP'::text, 'WO'::text, 'HOL'::text])))",
+    "table_name": "attendance",
+    "constraint_name": "attendance_status_check",
+    "constraint_type": "c"
+  },
+  {
+    "definition": "PRIMARY KEY (id)",
+    "table_name": "attendance",
+    "constraint_name": "attendance_pkey",
+    "constraint_type": "p"
+  },
+  {
+    "definition": "UNIQUE (employee_id, date)",
+    "table_name": "attendance",
+    "constraint_name": "attendance_employee_id_date_key",
+    "constraint_type": "u"
+  },
+  {
+    "definition": "FOREIGN KEY (employee_id) REFERENCES employees(id) ON DELETE CASCADE",
+    "table_name": "attendance",
+    "constraint_name": "attendance_employee_id_fkey",
+    "constraint_type": "f"
+  },
+  {
+    "definition": "FOREIGN KEY (marked_by) REFERENCES auth.users(id)",
+    "table_name": "attendance",
+    "constraint_name": "attendance_marked_by_fkey",
+    "constraint_type": "f"
+  },
+  {
+    "definition": "CHECK ((team = ANY (ARRAY['sales'::text, 'presales'::text, 'ar'::text])))",
+    "table_name": "incentive_config",
+    "constraint_name": "incentive_config_team_check",
+    "constraint_type": "c"
+  },
+  {
+    "definition": "PRIMARY KEY (id)",
+    "table_name": "incentive_config",
+    "constraint_name": "incentive_config_pkey",
+    "constraint_type": "p"
+  },
+  {
+    "definition": "PRIMARY KEY (user_id)",
+    "table_name": "user_preferences",
+    "constraint_name": "user_preferences_pkey",
+    "constraint_type": "p"
+  },
+  {
+    "definition": "FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE",
+    "table_name": "user_preferences",
+    "constraint_name": "user_preferences_user_id_fkey",
+    "constraint_type": "f"
+  },
+  {
+    "definition": "PRIMARY KEY (airtable_id)",
+    "table_name": "at_after_sales",
+    "constraint_name": "at_after_sales_pkey",
+    "constraint_type": "p"
+  },
+  {
+    "definition": "PRIMARY KEY (airtable_id)",
+    "table_name": "at_demo_bookings",
+    "constraint_name": "at_demo_bookings_pkey",
+    "constraint_type": "p"
+  },
+  {
+    "definition": "PRIMARY KEY (airtable_id)",
+    "table_name": "at_demo_scheduling",
+    "constraint_name": "at_demo_scheduling_pkey",
+    "constraint_type": "p"
+  },
+  {
+    "definition": "PRIMARY KEY (airtable_id)",
+    "table_name": "at_old_collection",
+    "constraint_name": "at_old_collection_pkey",
+    "constraint_type": "p"
+  },
+  {
+    "definition": "CHECK ((status = ANY (ARRAY['running'::text, 'success'::text, 'error'::text, 'partial'::text])))",
+    "table_name": "at_sync_runs",
+    "constraint_name": "at_sync_runs_status_check",
+    "constraint_type": "c"
+  },
+  {
+    "definition": "PRIMARY KEY (id)",
+    "table_name": "at_sync_runs",
+    "constraint_name": "at_sync_runs_pkey",
+    "constraint_type": "p"
+  },
+  {
+    "definition": "FOREIGN KEY (triggered_by_user) REFERENCES auth.users(id)",
+    "table_name": "at_sync_runs",
+    "constraint_name": "at_sync_runs_triggered_by_user_fkey",
+    "constraint_type": "f"
+  },
+  {
+    "definition": "PRIMARY KEY (airtable_id)",
+    "table_name": "at_employees",
+    "constraint_name": "at_employees_pkey",
+    "constraint_type": "p"
+  },
+  {
+    "definition": "PRIMARY KEY (key)",
+    "table_name": "app_settings",
+    "constraint_name": "app_settings_pkey",
+    "constraint_type": "p"
+  }
+]

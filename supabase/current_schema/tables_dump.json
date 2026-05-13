@@ -1,0 +1,1173 @@
+[
+  {
+    "columns": [
+      {
+        "data_type": "text",
+        "column_name": "key",
+        "is_nullable": "NO",
+        "column_default": null
+      },
+      {
+        "data_type": "timestamp with time zone",
+        "column_name": "updated_at",
+        "is_nullable": "YES",
+        "column_default": "now()"
+      },
+      {
+        "data_type": "text",
+        "column_name": "value",
+        "is_nullable": "NO",
+        "column_default": null
+      }
+    ],
+    "table_name": "app_settings"
+  },
+  {
+    "columns": [
+      {
+        "data_type": "jsonb",
+        "column_name": "raw",
+        "is_nullable": "YES",
+        "column_default": null
+      },
+      {
+        "data_type": "numeric",
+        "column_name": "inr_amount",
+        "is_nullable": "YES",
+        "column_default": "0"
+      },
+      {
+        "data_type": "numeric",
+        "column_name": "cpc",
+        "is_nullable": "YES",
+        "column_default": "0"
+      },
+      {
+        "data_type": "boolean",
+        "column_name": "sale_no_demo",
+        "is_nullable": "YES",
+        "column_default": "false"
+      },
+      {
+        "data_type": "boolean",
+        "column_name": "is_referral",
+        "is_nullable": "YES",
+        "column_default": "false"
+      },
+      {
+        "data_type": "text",
+        "column_name": "country_code",
+        "is_nullable": "YES",
+        "column_default": null
+      },
+      {
+        "data_type": "text",
+        "column_name": "timezone_city",
+        "is_nullable": "YES",
+        "column_default": null
+      },
+      {
+        "data_type": "text",
+        "column_name": "timezone_state",
+        "is_nullable": "YES",
+        "column_default": null
+      },
+      {
+        "data_type": "text",
+        "column_name": "grade",
+        "is_nullable": "YES",
+        "column_default": null
+      },
+      {
+        "data_type": "text",
+        "column_name": "country",
+        "is_nullable": "YES",
+        "column_default": null
+      },
+      {
+        "data_type": "text",
+        "column_name": "payment_option",
+        "is_nullable": "YES",
+        "column_default": null
+      },
+      {
+        "data_type": "text",
+        "column_name": "payment_mode",
+        "is_nullable": "YES",
+        "column_default": null
+      },
+      {
+        "data_type": "text",
+        "column_name": "currency_label",
+        "is_nullable": "YES",
+        "column_default": null
+      },
+      {
+        "data_type": "text",
+        "column_name": "currency",
+        "is_nullable": "YES",
+        "column_default": null
+      },
+      {
+        "data_type": "numeric",
+        "column_name": "amount",
+        "is_nullable": "YES",
+        "column_default": "0"
+      },
+      {
+        "data_type": "integer",
+        "column_name": "classes_monthly",
+        "is_nullable": "YES",
+        "column_default": "0"
+      },
+      {
+        "data_type": "integer",
+        "column_name": "classes_included",
+        "is_nullable": "YES",
+        "column_default": "0"
+      },
+      {
+        "data_type": "text",
+        "column_name": "subject",
+        "is_nullable": "YES",
+        "column_default": null
+      },
+      {
+        "data_type": "text",
+        "column_name": "enrollment_type",
+        "is_nullable": "YES",
+        "column_default": null
+      },
+      {
+        "data_type": "text",
+        "column_name": "who_booked_demo",
+        "is_nullable": "YES",
+        "column_default": null
+      },
+      {
+        "data_type": "text",
+        "column_name": "lead_source",
+        "is_nullable": "YES",
+        "column_default": null
+      },
+      {
+        "data_type": "text",
+        "column_name": "lead_channel",
+        "is_nullable": "YES",
+        "column_default": null
+      },
+      {
+        "data_type": "text",
+        "column_name": "team",
+        "is_nullable": "YES",
+        "column_default": null
+      },
+      {
+        "data_type": "text",
+        "column_name": "agent",
+        "is_nullable": "YES",
+        "column_default": null
+      },
+      {
+        "data_type": "timestamp with time zone",
+        "column_name": "created",
+        "is_nullable": "YES",
+        "column_default": null
+      },
+      {
+        "data_type": "date",
+        "column_name": "enrollment_date",
+        "is_nullable": "YES",
+        "column_default": null
+      },
+      {
+        "data_type": "text",
+        "column_name": "airtable_id",
+        "is_nullable": "NO",
+        "column_default": null
+      },
+      {
+        "data_type": "text",
+        "column_name": "batch_id",
+        "is_nullable": "YES",
+        "column_default": null
+      },
+      {
+        "data_type": "ARRAY",
+        "column_name": "student_link_ids",
+        "is_nullable": "YES",
+        "column_default": "'{}'::text[]"
+      },
+      {
+        "data_type": "timestamp with time zone",
+        "column_name": "synced_at",
+        "is_nullable": "YES",
+        "column_default": "now()"
+      }
+    ],
+    "table_name": "at_after_sales"
+  },
+  {
+    "columns": [
+      {
+        "data_type": "timestamp with time zone",
+        "column_name": "demo_date_ist",
+        "is_nullable": "YES",
+        "column_default": null
+      },
+      {
+        "data_type": "text",
+        "column_name": "lead_source",
+        "is_nullable": "YES",
+        "column_default": null
+      },
+      {
+        "data_type": "date",
+        "column_name": "form_filling_date",
+        "is_nullable": "YES",
+        "column_default": null
+      },
+      {
+        "data_type": "text",
+        "column_name": "airtable_id",
+        "is_nullable": "NO",
+        "column_default": null
+      },
+      {
+        "data_type": "text",
+        "column_name": "student_id",
+        "is_nullable": "YES",
+        "column_default": null
+      },
+      {
+        "data_type": "text",
+        "column_name": "booking_id",
+        "is_nullable": "YES",
+        "column_default": null
+      },
+      {
+        "data_type": "text",
+        "column_name": "presales_agent",
+        "is_nullable": "YES",
+        "column_default": null
+      },
+      {
+        "data_type": "text",
+        "column_name": "sales_agent",
+        "is_nullable": "YES",
+        "column_default": null
+      },
+      {
+        "data_type": "text",
+        "column_name": "dsa",
+        "is_nullable": "YES",
+        "column_default": null
+      },
+      {
+        "data_type": "text",
+        "column_name": "student_name",
+        "is_nullable": "YES",
+        "column_default": null
+      },
+      {
+        "data_type": "text",
+        "column_name": "student_email",
+        "is_nullable": "YES",
+        "column_default": null
+      },
+      {
+        "data_type": "text",
+        "column_name": "student_contact",
+        "is_nullable": "YES",
+        "column_default": null
+      },
+      {
+        "data_type": "text",
+        "column_name": "country",
+        "is_nullable": "YES",
+        "column_default": null
+      },
+      {
+        "data_type": "text",
+        "column_name": "city",
+        "is_nullable": "YES",
+        "column_default": null
+      },
+      {
+        "data_type": "text",
+        "column_name": "student_timezone",
+        "is_nullable": "YES",
+        "column_default": null
+      },
+      {
+        "data_type": "text",
+        "column_name": "subject",
+        "is_nullable": "YES",
+        "column_default": null
+      },
+      {
+        "data_type": "timestamp with time zone",
+        "column_name": "demo_date_cx",
+        "is_nullable": "YES",
+        "column_default": null
+      },
+      {
+        "data_type": "timestamp with time zone",
+        "column_name": "form_filling_time",
+        "is_nullable": "YES",
+        "column_default": null
+      },
+      {
+        "data_type": "timestamp with time zone",
+        "column_name": "synced_at",
+        "is_nullable": "YES",
+        "column_default": "now()"
+      },
+      {
+        "data_type": "jsonb",
+        "column_name": "raw",
+        "is_nullable": "YES",
+        "column_default": null
+      },
+      {
+        "data_type": "ARRAY",
+        "column_name": "demo_scheduled_lookup",
+        "is_nullable": "YES",
+        "column_default": "'{}'::text[]"
+      },
+      {
+        "data_type": "ARRAY",
+        "column_name": "demo_completed_lookup",
+        "is_nullable": "YES",
+        "column_default": "'{}'::text[]"
+      },
+      {
+        "data_type": "ARRAY",
+        "column_name": "after_sales_links",
+        "is_nullable": "YES",
+        "column_default": "'{}'::text[]"
+      },
+      {
+        "data_type": "ARRAY",
+        "column_name": "demo_scheduling_links",
+        "is_nullable": "YES",
+        "column_default": "'{}'::text[]"
+      },
+      {
+        "data_type": "boolean",
+        "column_name": "sale_no_demo",
+        "is_nullable": "YES",
+        "column_default": "false"
+      }
+    ],
+    "table_name": "at_demo_bookings"
+  },
+  {
+    "columns": [
+      {
+        "data_type": "timestamp with time zone",
+        "column_name": "synced_at",
+        "is_nullable": "YES",
+        "column_default": "now()"
+      },
+      {
+        "data_type": "jsonb",
+        "column_name": "raw",
+        "is_nullable": "YES",
+        "column_default": null
+      },
+      {
+        "data_type": "text",
+        "column_name": "dsa",
+        "is_nullable": "YES",
+        "column_default": null
+      },
+      {
+        "data_type": "timestamp with time zone",
+        "column_name": "created",
+        "is_nullable": "YES",
+        "column_default": null
+      },
+      {
+        "data_type": "text",
+        "column_name": "reason_not_completed",
+        "is_nullable": "YES",
+        "column_default": null
+      },
+      {
+        "data_type": "text",
+        "column_name": "reason_not_scheduled",
+        "is_nullable": "YES",
+        "column_default": null
+      },
+      {
+        "data_type": "boolean",
+        "column_name": "wa_mail_sent",
+        "is_nullable": "YES",
+        "column_default": "false"
+      },
+      {
+        "data_type": "text",
+        "column_name": "scheduled_by",
+        "is_nullable": "YES",
+        "column_default": null
+      },
+      {
+        "data_type": "ARRAY",
+        "column_name": "teacher_link",
+        "is_nullable": "YES",
+        "column_default": "'{}'::text[]"
+      },
+      {
+        "data_type": "text",
+        "column_name": "subject",
+        "is_nullable": "YES",
+        "column_default": null
+      },
+      {
+        "data_type": "timestamp with time zone",
+        "column_name": "final_demo_date",
+        "is_nullable": "YES",
+        "column_default": null
+      },
+      {
+        "data_type": "boolean",
+        "column_name": "is_completed",
+        "is_nullable": "YES",
+        "column_default": "false"
+      },
+      {
+        "data_type": "text",
+        "column_name": "demo_completed",
+        "is_nullable": "YES",
+        "column_default": null
+      },
+      {
+        "data_type": "boolean",
+        "column_name": "demo_scheduled",
+        "is_nullable": "YES",
+        "column_default": "false"
+      },
+      {
+        "data_type": "ARRAY",
+        "column_name": "student_link",
+        "is_nullable": "YES",
+        "column_default": "'{}'::text[]"
+      },
+      {
+        "data_type": "text",
+        "column_name": "demo_id",
+        "is_nullable": "YES",
+        "column_default": null
+      },
+      {
+        "data_type": "text",
+        "column_name": "airtable_id",
+        "is_nullable": "NO",
+        "column_default": null
+      }
+    ],
+    "table_name": "at_demo_scheduling"
+  },
+  {
+    "columns": [
+      {
+        "data_type": "jsonb",
+        "column_name": "raw",
+        "is_nullable": "YES",
+        "column_default": null
+      },
+      {
+        "data_type": "text",
+        "column_name": "airtable_id",
+        "is_nullable": "NO",
+        "column_default": null
+      },
+      {
+        "data_type": "text",
+        "column_name": "full_name",
+        "is_nullable": "YES",
+        "column_default": null
+      },
+      {
+        "data_type": "text",
+        "column_name": "employee_id",
+        "is_nullable": "YES",
+        "column_default": null
+      },
+      {
+        "data_type": "text",
+        "column_name": "email",
+        "is_nullable": "YES",
+        "column_default": null
+      },
+      {
+        "data_type": "text",
+        "column_name": "contact",
+        "is_nullable": "YES",
+        "column_default": null
+      },
+      {
+        "data_type": "text",
+        "column_name": "department",
+        "is_nullable": "YES",
+        "column_default": null
+      },
+      {
+        "data_type": "text",
+        "column_name": "designation",
+        "is_nullable": "YES",
+        "column_default": null
+      },
+      {
+        "data_type": "text",
+        "column_name": "gender",
+        "is_nullable": "YES",
+        "column_default": null
+      },
+      {
+        "data_type": "date",
+        "column_name": "joining_date",
+        "is_nullable": "YES",
+        "column_default": null
+      },
+      {
+        "data_type": "ARRAY",
+        "column_name": "reporting_manager",
+        "is_nullable": "YES",
+        "column_default": "'{}'::text[]"
+      },
+      {
+        "data_type": "timestamp with time zone",
+        "column_name": "synced_at",
+        "is_nullable": "YES",
+        "column_default": "now()"
+      }
+    ],
+    "table_name": "at_employees"
+  },
+  {
+    "columns": [
+      {
+        "data_type": "text",
+        "column_name": "payment_mode",
+        "is_nullable": "YES",
+        "column_default": null
+      },
+      {
+        "data_type": "jsonb",
+        "column_name": "raw",
+        "is_nullable": "YES",
+        "column_default": null
+      },
+      {
+        "data_type": "timestamp with time zone",
+        "column_name": "synced_at",
+        "is_nullable": "YES",
+        "column_default": "now()"
+      },
+      {
+        "data_type": "text",
+        "column_name": "airtable_id",
+        "is_nullable": "NO",
+        "column_default": null
+      },
+      {
+        "data_type": "integer",
+        "column_name": "classes_sold",
+        "is_nullable": "YES",
+        "column_default": "0"
+      },
+      {
+        "data_type": "integer",
+        "column_name": "classes_monthly",
+        "is_nullable": "YES",
+        "column_default": "0"
+      },
+      {
+        "data_type": "text",
+        "column_name": "currency",
+        "is_nullable": "YES",
+        "column_default": null
+      },
+      {
+        "data_type": "text",
+        "column_name": "currency_label",
+        "is_nullable": "YES",
+        "column_default": null
+      },
+      {
+        "data_type": "numeric",
+        "column_name": "amount",
+        "is_nullable": "YES",
+        "column_default": "0"
+      },
+      {
+        "data_type": "text",
+        "column_name": "renewed_by",
+        "is_nullable": "YES",
+        "column_default": null
+      },
+      {
+        "data_type": "text",
+        "column_name": "department",
+        "is_nullable": "YES",
+        "column_default": null
+      },
+      {
+        "data_type": "date",
+        "column_name": "payment_date",
+        "is_nullable": "YES",
+        "column_default": null
+      }
+    ],
+    "table_name": "at_old_collection"
+  },
+  {
+    "columns": [
+      {
+        "data_type": "timestamp with time zone",
+        "column_name": "finished_at",
+        "is_nullable": "YES",
+        "column_default": null
+      },
+      {
+        "data_type": "timestamp with time zone",
+        "column_name": "started_at",
+        "is_nullable": "YES",
+        "column_default": "now()"
+      },
+      {
+        "data_type": "uuid",
+        "column_name": "id",
+        "is_nullable": "NO",
+        "column_default": "gen_random_uuid()"
+      },
+      {
+        "data_type": "integer",
+        "column_name": "rows_employees",
+        "is_nullable": "YES",
+        "column_default": "0"
+      },
+      {
+        "data_type": "text",
+        "column_name": "error_message",
+        "is_nullable": "YES",
+        "column_default": null
+      },
+      {
+        "data_type": "integer",
+        "column_name": "rows_old_collection",
+        "is_nullable": "YES",
+        "column_default": "0"
+      },
+      {
+        "data_type": "integer",
+        "column_name": "rows_demo_scheduling",
+        "is_nullable": "YES",
+        "column_default": "0"
+      },
+      {
+        "data_type": "integer",
+        "column_name": "rows_demo_bookings",
+        "is_nullable": "YES",
+        "column_default": "0"
+      },
+      {
+        "data_type": "integer",
+        "column_name": "rows_after_sales",
+        "is_nullable": "YES",
+        "column_default": "0"
+      },
+      {
+        "data_type": "uuid",
+        "column_name": "triggered_by_user",
+        "is_nullable": "YES",
+        "column_default": null
+      },
+      {
+        "data_type": "text",
+        "column_name": "triggered_by",
+        "is_nullable": "YES",
+        "column_default": null
+      },
+      {
+        "data_type": "text",
+        "column_name": "status",
+        "is_nullable": "YES",
+        "column_default": "'running'::text"
+      }
+    ],
+    "table_name": "at_sync_runs"
+  },
+  {
+    "columns": [
+      {
+        "data_type": "date",
+        "column_name": "date",
+        "is_nullable": "NO",
+        "column_default": null
+      },
+      {
+        "data_type": "text",
+        "column_name": "reason",
+        "is_nullable": "YES",
+        "column_default": null
+      },
+      {
+        "data_type": "boolean",
+        "column_name": "auto_flagged",
+        "is_nullable": "YES",
+        "column_default": "false"
+      },
+      {
+        "data_type": "timestamp with time zone",
+        "column_name": "created_at",
+        "is_nullable": "YES",
+        "column_default": "now()"
+      },
+      {
+        "data_type": "uuid",
+        "column_name": "marked_by",
+        "is_nullable": "YES",
+        "column_default": null
+      },
+      {
+        "data_type": "uuid",
+        "column_name": "id",
+        "is_nullable": "NO",
+        "column_default": "gen_random_uuid()"
+      },
+      {
+        "data_type": "uuid",
+        "column_name": "employee_id",
+        "is_nullable": "YES",
+        "column_default": null
+      },
+      {
+        "data_type": "text",
+        "column_name": "status",
+        "is_nullable": "NO",
+        "column_default": null
+      }
+    ],
+    "table_name": "attendance"
+  },
+  {
+    "columns": [
+      {
+        "data_type": "text",
+        "column_name": "department",
+        "is_nullable": "YES",
+        "column_default": null
+      },
+      {
+        "data_type": "text",
+        "column_name": "email",
+        "is_nullable": "YES",
+        "column_default": null
+      },
+      {
+        "data_type": "text",
+        "column_name": "full_name",
+        "is_nullable": "NO",
+        "column_default": null
+      },
+      {
+        "data_type": "text",
+        "column_name": "airtable_id",
+        "is_nullable": "YES",
+        "column_default": null
+      },
+      {
+        "data_type": "uuid",
+        "column_name": "id",
+        "is_nullable": "NO",
+        "column_default": "gen_random_uuid()"
+      },
+      {
+        "data_type": "text",
+        "column_name": "airtable_agent_name",
+        "is_nullable": "YES",
+        "column_default": null
+      },
+      {
+        "data_type": "timestamp with time zone",
+        "column_name": "created_at",
+        "is_nullable": "YES",
+        "column_default": "now()"
+      },
+      {
+        "data_type": "boolean",
+        "column_name": "active",
+        "is_nullable": "YES",
+        "column_default": "true"
+      },
+      {
+        "data_type": "text",
+        "column_name": "reporting_manager_email",
+        "is_nullable": "YES",
+        "column_default": null
+      },
+      {
+        "data_type": "text",
+        "column_name": "designation",
+        "is_nullable": "YES",
+        "column_default": null
+      },
+      {
+        "data_type": "uuid",
+        "column_name": "region_id",
+        "is_nullable": "YES",
+        "column_default": null
+      },
+      {
+        "data_type": "text",
+        "column_name": "app_role",
+        "is_nullable": "NO",
+        "column_default": "'staff'::text"
+      }
+    ],
+    "table_name": "employees"
+  },
+  {
+    "columns": [
+      {
+        "data_type": "jsonb",
+        "column_name": "config",
+        "is_nullable": "NO",
+        "column_default": null
+      },
+      {
+        "data_type": "date",
+        "column_name": "effective_from",
+        "is_nullable": "NO",
+        "column_default": "CURRENT_DATE"
+      },
+      {
+        "data_type": "text",
+        "column_name": "team",
+        "is_nullable": "NO",
+        "column_default": null
+      },
+      {
+        "data_type": "uuid",
+        "column_name": "id",
+        "is_nullable": "NO",
+        "column_default": "gen_random_uuid()"
+      },
+      {
+        "data_type": "timestamp with time zone",
+        "column_name": "created_at",
+        "is_nullable": "YES",
+        "column_default": "now()"
+      }
+    ],
+    "table_name": "incentive_config"
+  },
+  {
+    "columns": [
+      {
+        "data_type": "numeric",
+        "column_name": "monthly_revenue_target",
+        "is_nullable": "YES",
+        "column_default": "0"
+      },
+      {
+        "data_type": "integer",
+        "column_name": "monthly_target",
+        "is_nullable": "YES",
+        "column_default": "0"
+      },
+      {
+        "data_type": "integer",
+        "column_name": "weekly_target",
+        "is_nullable": "YES",
+        "column_default": "0"
+      },
+      {
+        "data_type": "date",
+        "column_name": "period_month",
+        "is_nullable": "NO",
+        "column_default": null
+      },
+      {
+        "data_type": "uuid",
+        "column_name": "employee_id",
+        "is_nullable": "YES",
+        "column_default": null
+      },
+      {
+        "data_type": "uuid",
+        "column_name": "id",
+        "is_nullable": "NO",
+        "column_default": "gen_random_uuid()"
+      },
+      {
+        "data_type": "text",
+        "column_name": "notes",
+        "is_nullable": "YES",
+        "column_default": null
+      },
+      {
+        "data_type": "numeric",
+        "column_name": "min_cpc",
+        "is_nullable": "YES",
+        "column_default": "0"
+      },
+      {
+        "data_type": "numeric",
+        "column_name": "min_aov",
+        "is_nullable": "YES",
+        "column_default": "0"
+      },
+      {
+        "data_type": "integer",
+        "column_name": "daily_demo_target",
+        "is_nullable": "YES",
+        "column_default": "4"
+      },
+      {
+        "data_type": "integer",
+        "column_name": "monthly_demo_target",
+        "is_nullable": "YES",
+        "column_default": "0"
+      },
+      {
+        "data_type": "timestamp with time zone",
+        "column_name": "created_at",
+        "is_nullable": "YES",
+        "column_default": "now()"
+      }
+    ],
+    "table_name": "individual_targets"
+  },
+  {
+    "columns": [
+      {
+        "data_type": "numeric",
+        "column_name": "monthly_revenue_target",
+        "is_nullable": "YES",
+        "column_default": "0"
+      },
+      {
+        "data_type": "text",
+        "column_name": "team",
+        "is_nullable": "NO",
+        "column_default": null
+      },
+      {
+        "data_type": "integer",
+        "column_name": "daily_demo_target",
+        "is_nullable": "YES",
+        "column_default": "4"
+      },
+      {
+        "data_type": "uuid",
+        "column_name": "id",
+        "is_nullable": "NO",
+        "column_default": "gen_random_uuid()"
+      },
+      {
+        "data_type": "integer",
+        "column_name": "monthly_demo_target",
+        "is_nullable": "YES",
+        "column_default": "0"
+      },
+      {
+        "data_type": "date",
+        "column_name": "period_month",
+        "is_nullable": "NO",
+        "column_default": null
+      },
+      {
+        "data_type": "uuid",
+        "column_name": "region_id",
+        "is_nullable": "YES",
+        "column_default": null
+      },
+      {
+        "data_type": "timestamp with time zone",
+        "column_name": "created_at",
+        "is_nullable": "YES",
+        "column_default": "now()"
+      },
+      {
+        "data_type": "numeric",
+        "column_name": "min_cpc",
+        "is_nullable": "YES",
+        "column_default": "0"
+      },
+      {
+        "data_type": "numeric",
+        "column_name": "min_aov",
+        "is_nullable": "YES",
+        "column_default": "0"
+      }
+    ],
+    "table_name": "region_targets"
+  },
+  {
+    "columns": [
+      {
+        "data_type": "text",
+        "column_name": "name",
+        "is_nullable": "NO",
+        "column_default": null
+      },
+      {
+        "data_type": "ARRAY",
+        "column_name": "countries",
+        "is_nullable": "YES",
+        "column_default": "'{}'::text[]"
+      },
+      {
+        "data_type": "uuid",
+        "column_name": "id",
+        "is_nullable": "NO",
+        "column_default": "gen_random_uuid()"
+      },
+      {
+        "data_type": "timestamp with time zone",
+        "column_name": "created_at",
+        "is_nullable": "YES",
+        "column_default": "now()"
+      }
+    ],
+    "table_name": "regions"
+  },
+  {
+    "columns": [
+      {
+        "data_type": "text",
+        "column_name": "default_currency",
+        "is_nullable": "YES",
+        "column_default": "'INR'::text"
+      },
+      {
+        "data_type": "uuid",
+        "column_name": "user_id",
+        "is_nullable": "NO",
+        "column_default": null
+      },
+      {
+        "data_type": "ARRAY",
+        "column_name": "preferred_timezones",
+        "is_nullable": "YES",
+        "column_default": "'{Asia/Kolkata,Australia/Sydney,Europe/London,America/New_York,America/Toronto,Asia/Singapore,Asia/Dubai}'::text[]"
+      },
+      {
+        "data_type": "boolean",
+        "column_name": "dark_mode",
+        "is_nullable": "YES",
+        "column_default": "false"
+      },
+      {
+        "data_type": "timestamp with time zone",
+        "column_name": "updated_at",
+        "is_nullable": "YES",
+        "column_default": "now()"
+      }
+    ],
+    "table_name": "user_preferences"
+  },
+  {
+    "columns": [
+      {
+        "data_type": "timestamp with time zone",
+        "column_name": "created_at",
+        "is_nullable": "YES",
+        "column_default": "now()"
+      },
+      {
+        "data_type": "uuid",
+        "column_name": "user_id",
+        "is_nullable": "NO",
+        "column_default": null
+      },
+      {
+        "data_type": "uuid",
+        "column_name": "employee_id",
+        "is_nullable": "YES",
+        "column_default": null
+      },
+      {
+        "data_type": "boolean",
+        "column_name": "is_super_admin",
+        "is_nullable": "NO",
+        "column_default": "false"
+      }
+    ],
+    "table_name": "user_profiles"
+  },
+  {
+    "columns": [
+      {
+        "data_type": "timestamp with time zone",
+        "column_name": "last_success_at",
+        "is_nullable": "YES",
+        "column_default": null
+      },
+      {
+        "data_type": "uuid",
+        "column_name": "last_id",
+        "is_nullable": "YES",
+        "column_default": null
+      },
+      {
+        "data_type": "text",
+        "column_name": "last_status",
+        "is_nullable": "YES",
+        "column_default": null
+      },
+      {
+        "data_type": "timestamp with time zone",
+        "column_name": "last_started_at",
+        "is_nullable": "YES",
+        "column_default": null
+      }
+    ],
+    "table_name": "v_last_sync"
+  },
+  {
+    "columns": [
+      {
+        "data_type": "timestamp with time zone",
+        "column_name": "created_at",
+        "is_nullable": "YES",
+        "column_default": null
+      },
+      {
+        "data_type": "uuid",
+        "column_name": "employee_id",
+        "is_nullable": "YES",
+        "column_default": null
+      },
+      {
+        "data_type": "uuid",
+        "column_name": "user_id",
+        "is_nullable": "YES",
+        "column_default": null
+      },
+      {
+        "data_type": "character varying",
+        "column_name": "auth_email",
+        "is_nullable": "YES",
+        "column_default": null
+      },
+      {
+        "data_type": "timestamp with time zone",
+        "column_name": "last_sign_in_at",
+        "is_nullable": "YES",
+        "column_default": null
+      },
+      {
+        "data_type": "boolean",
+        "column_name": "is_super_admin",
+        "is_nullable": "YES",
+        "column_default": null
+      }
+    ],
+    "table_name": "v_user_profiles_full"
+  }
+]

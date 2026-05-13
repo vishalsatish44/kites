@@ -107,58 +107,60 @@ export default function SalesBreakup() {
     collectionRows.reduce((s, r) => s + toInr(r.amount, r.currency, rates), 0),
   [collectionRows, rates]);
 
-  const collectionByAgent = useMemo(() => {
-    const g = {};
-    collectionRows.forEach(r => {
-      if (!g[r.renewedBy]) g[r.renewedBy] = { count: 0, amount: 0 };
-      g[r.renewedBy].count++;
-      g[r.renewedBy].amount += toInr(r.amount, r.currency, rates);
-    });
-    return Object.entries(g).sort((a, b) => b[1].amount - a[1].amount);
-  }, [collectionRows, rates]);
+  const combinedData = useMemo(() => {
+    if (!includeCollection) return filtered;
+    const normalizedRenewals = collectionRows.map(r => ({
+      ...r,
+      agent: r.renewedBy,
+      enrollmentDate: r.paymentDate,
+      inrAmount: toInr(r.amount, r.currency, rates),
+      enrollmentType: 'Renewal (Cross/Existing)',
+      isCollection: true
+    }));
+    return [...filtered, ...normalizedRenewals];
+  }, [filtered, collectionRows, includeCollection, rates]);
 
   // Chart data
   const leadSourceData = useMemo(() => {
     const g = {};
-    filtered.forEach(s => { const k = s.leadChannel || s.leadSource || '—'; g[k] = (g[k] || 0) + s.inrAmount; });
+    combinedData.forEach(s => { const k = s.leadChannel || s.leadSource || (s.isCollection ? 'Renewal' : '—'); g[k] = (g[k] || 0) + s.inrAmount; });
     return Object.entries(g).map(([name, revenue]) => ({ name, revenue: Math.round(revenue) }))
       .sort((a, b) => b.revenue - a.revenue).slice(0, 8);
-  }, [filtered]);
+  }, [combinedData]);
 
   const exportCsv = () => {
-    const headers = ['Date', 'Batch', 'Country', 'Subject', 'Counselor', 'Currency', 'Amount', 'INR (logged)', 'INR (live)', 'Classes', 'Type', 'Channel', 'Mode'];
-    const rows = filtered.map(s => [
-      s.enrollmentDate || '', s.batchId || '', s.country || '', s.subject || '',
-      s.agent || '', s.currency || '', s.amount || 0, s.inrAmount || 0,
-      Math.round(toLiveInr(s.amount, s.currency)), s.classesIncluded || 0,
-      s.enrollmentType || '', s.leadChannel || '', s.paymentMode || '',
+    const headers = ['Date', 'Batch/Source', 'Country', 'Subject', 'Counselor', 'Currency', 'Amount', 'INR', 'Classes', 'Type'];
+    const rows = combinedData.map(s => [
+      s.enrollmentDate || '', s.batchId || (s.isCollection ? 'Old Collection' : ''), s.country || '', s.subject || '',
+      s.agent || '', s.currency || '', s.amount || 0, Math.round(s.inrAmount || 0),
+      s.classesIncluded || 0, s.enrollmentType || '',
     ]);
     const csv = [headers, ...rows].map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n');
     const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement('a'); a.href = url; a.download = `sales-${month}.csv`; a.click();
+    const a = document.createElement('a'); a.href = url; a.download = `sales-combined-${month}.csv`; a.click();
     URL.revokeObjectURL(url);
   };
 
   const agentData = useMemo(() => {
     const g = {};
-    filtered.forEach(s => { if (s.agent) g[s.agent] = (g[s.agent] || 0) + s.inrAmount; });
+    combinedData.forEach(s => { if (s.agent) g[s.agent] = (g[s.agent] || 0) + s.inrAmount; });
     return Object.entries(g)
       .map(([name, revenue]) => ({ name: name.split(' ')[0], revenue: Math.round(revenue) }))
       .sort((a, b) => b.revenue - a.revenue).slice(0, 8);
-  }, [filtered]);
+  }, [combinedData]);
 
   const countryData = useMemo(() => {
     const g = {};
-    filtered.forEach(s => { if (s.country) g[s.country] = (g[s.country] || 0) + s.inrAmount; });
+    combinedData.forEach(s => { if (s.country) g[s.country] = (g[s.country] || 0) + s.inrAmount; });
     return Object.entries(g)
       .map(([name, revenue]) => ({ name, revenue: Math.round(revenue) }))
       .sort((a, b) => b.revenue - a.revenue).slice(0, 8);
-  }, [filtered]);
+  }, [combinedData]);
 
   const dayTrend = useMemo(() => {
     const g = {};
-    filtered.forEach(s => {
+    combinedData.forEach(s => {
       if (!s.enrollmentDate) return;
       const d = dayjs(s.enrollmentDate).format('YYYY-MM-DD');
       g[d] = (g[d] || 0) + s.inrAmount;
@@ -166,7 +168,7 @@ export default function SalesBreakup() {
     return Object.entries(g)
       .sort(([a], [b]) => a.localeCompare(b))
       .map(([date, revenue]) => ({ day: dayjs(date).format('D MMM'), revenue: Math.round(revenue) }));
-  }, [filtered]);
+  }, [combinedData]);
 
   if (sales.isLoading) return <Loading />;
   if (sales.error) return <ErrorBox error={sales.error} />;

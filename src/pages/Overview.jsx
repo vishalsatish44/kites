@@ -1,10 +1,11 @@
 import { useMemo, useState } from 'react';
 import { DollarSign, Users, Target, ClipboardList, MoreHorizontal, Share2, Filter, Sparkles, AlertTriangle, X } from 'lucide-react';
-import { useAfterSales, useDemoBookings, useDemoScheduling } from '../hooks/useAirtable';
+import { useAfterSales, useDemoBookings, useDemoScheduling, useOldCollection } from '../hooks/useAirtable';
 import { useGemini } from '../hooks/useGemini';
+import { useFxRates, toInr } from '../hooks/useAutoSync';
 import { ModernCard, ModernPageHeader, ModernBarChart, ModernGaugeChart, ProgressBar, ModernLoading, ModernErrorBox } from '../components/ModernUi';
 import { dayjs, isInMonth } from '../lib/dates';
-import { sumBy, filterByMonth } from '../lib/rollups';
+import { sumBy, filterByMonth, mergeSalesAndRenewals } from '../lib/rollups';
 import { formatMoney } from '../lib/currency';
 import { useTheme } from '../contexts/ThemeContext';
 import '../Modern.css';
@@ -24,6 +25,9 @@ export default function Overview() {
   const sales = useAfterSales();
   const bookings = useDemoBookings();
   const scheduling = useDemoScheduling();
+  const oldCol = useOldCollection();
+  const { data: rates } = useFxRates();
+
   const { isDarkMode } = useTheme();
 
   const { ask: askForecast, loading: forecastLoading } = useGemini();
@@ -113,12 +117,14 @@ Keep it specific, not generic.`;
   };
 
   const stats = useMemo(() => {
-    if (!sales.data || !bookings.data || !scheduling.data) return null;
+    if (!sales.data || !bookings.data || !scheduling.data || !oldCol.data) return null;
     const now = dayjs();
     const lastMonth = now.subtract(1, 'month');
 
-    const salesThis = filterByMonth(sales.data, 'enrollmentDate', now);
-    const salesPrev = filterByMonth(sales.data, 'enrollmentDate', lastMonth);
+    const totalData = mergeSalesAndRenewals(sales.data, oldCol.data, rates, toInr);
+
+    const salesThis = filterByMonth(totalData, 'enrollmentDate', now);
+    const salesPrev = filterByMonth(totalData, 'enrollmentDate', lastMonth);
     const revenueThis = sumBy(salesThis, 'inrAmount');
     const revenuePrev = sumBy(salesPrev, 'inrAmount');
     const growth = revenuePrev > 0 ? ((revenueThis - revenuePrev) / revenuePrev) * 100 : 0;
@@ -129,7 +135,7 @@ Keep it specific, not generic.`;
     const completedThis = scheduling.data.filter(s => s.isCompleted && isInMonth(s.finalDemoDate, now));
 
     const months = Array.from({ length: 12 }, (_, i) => now.subtract(11 - i, 'month'));
-    const monthly = months.map(m => sumBy(filterByMonth(sales.data, 'enrollmentDate', m), 'inrAmount'));
+    const monthly = months.map(m => sumBy(filterByMonth(totalData, 'enrollmentDate', m), 'inrAmount'));
     const monthLabels = months.map(m => m.format('MMM'));
 
     const conversionPct = demosThis.length > 0 ? (salesThis.length / demosThis.length) * 100 : 0;
@@ -147,7 +153,7 @@ Keep it specific, not generic.`;
       conversionPct,
       monthly, monthLabels,
     };
-  }, [sales.data, bookings.data, scheduling.data]);
+  }, [sales.data, bookings.data, scheduling.data, oldCol.data, rates]);
 
   // Anomaly detection: revenue drop >20% OR very low conversion with meaningful volume
   const anomalyFlags = stats ? [

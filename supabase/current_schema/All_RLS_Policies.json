@@ -1,0 +1,230 @@
+[
+  {
+    "cmd": "ALL",
+    "qual": "is_management()",
+    "roles": [
+      "public"
+    ],
+    "tablename": "region_targets",
+    "permissive": "PERMISSIVE",
+    "policyname": "region_targets_write",
+    "schemaname": "public",
+    "with_check": "is_management()"
+  },
+  {
+    "cmd": "SELECT",
+    "qual": "true",
+    "roles": [
+      "public"
+    ],
+    "tablename": "region_targets",
+    "permissive": "PERMISSIVE",
+    "policyname": "region_targets_read",
+    "schemaname": "public",
+    "with_check": null
+  },
+  {
+    "cmd": "ALL",
+    "qual": "is_management()",
+    "roles": [
+      "public"
+    ],
+    "tablename": "individual_targets",
+    "permissive": "PERMISSIVE",
+    "policyname": "ind_targets_write",
+    "schemaname": "public",
+    "with_check": "is_management()"
+  },
+  {
+    "cmd": "SELECT",
+    "qual": "(is_management() OR (employee_id = my_employee_id()))",
+    "roles": [
+      "public"
+    ],
+    "tablename": "individual_targets",
+    "permissive": "PERMISSIVE",
+    "policyname": "ind_targets_read",
+    "schemaname": "public",
+    "with_check": null
+  },
+  {
+    "cmd": "ALL",
+    "qual": "is_management()",
+    "roles": [
+      "public"
+    ],
+    "tablename": "attendance",
+    "permissive": "PERMISSIVE",
+    "policyname": "attendance_write",
+    "schemaname": "public",
+    "with_check": "is_management()"
+  },
+  {
+    "cmd": "SELECT",
+    "qual": "(is_management() OR (employee_id = my_employee_id()))",
+    "roles": [
+      "public"
+    ],
+    "tablename": "attendance",
+    "permissive": "PERMISSIVE",
+    "policyname": "attendance_read",
+    "schemaname": "public",
+    "with_check": null
+  },
+  {
+    "cmd": "ALL",
+    "qual": "is_management()",
+    "roles": [
+      "public"
+    ],
+    "tablename": "incentive_config",
+    "permissive": "PERMISSIVE",
+    "policyname": "incentive_write",
+    "schemaname": "public",
+    "with_check": "is_management()"
+  },
+  {
+    "cmd": "SELECT",
+    "qual": "true",
+    "roles": [
+      "public"
+    ],
+    "tablename": "incentive_config",
+    "permissive": "PERMISSIVE",
+    "policyname": "incentive_read",
+    "schemaname": "public",
+    "with_check": null
+  },
+  {
+    "cmd": "ALL",
+    "qual": "(user_id = auth.uid())",
+    "roles": [
+      "public"
+    ],
+    "tablename": "user_preferences",
+    "permissive": "PERMISSIVE",
+    "policyname": "prefs_self",
+    "schemaname": "public",
+    "with_check": "(user_id = auth.uid())"
+  },
+  {
+    "cmd": "SELECT",
+    "qual": "true",
+    "roles": [
+      "public"
+    ],
+    "tablename": "regions",
+    "permissive": "PERMISSIVE",
+    "policyname": "regions_read",
+    "schemaname": "public",
+    "with_check": null
+  },
+  {
+    "cmd": "SELECT",
+    "qual": "(is_management() OR (id = my_employee_id()))",
+    "roles": [
+      "public"
+    ],
+    "tablename": "employees",
+    "permissive": "PERMISSIVE",
+    "policyname": "employees_read_all_mgmt",
+    "schemaname": "public",
+    "with_check": null
+  },
+  {
+    "cmd": "ALL",
+    "qual": "(user_id = auth.uid())",
+    "roles": [
+      "public"
+    ],
+    "tablename": "user_profiles",
+    "permissive": "PERMISSIVE",
+    "policyname": "profile_self",
+    "schemaname": "public",
+    "with_check": "(user_id = auth.uid())"
+  },
+  {
+    "cmd": "SELECT",
+    "qual": "(is_management() OR (EXISTS ( SELECT 1\n   FROM (user_profiles up\n     JOIN employees e ON ((e.id = up.employee_id)))\n  WHERE ((up.user_id = auth.uid()) AND ((e.app_role = ANY (ARRAY['sales'::text, 'ar'::text])) OR ((e.app_role = 'presales'::text) AND (lower(at_demo_bookings.presales_agent) = lower(e.full_name))))))))",
+    "roles": [
+      "public"
+    ],
+    "tablename": "at_demo_bookings",
+    "permissive": "PERMISSIVE",
+    "policyname": "at_demo_bookings_read",
+    "schemaname": "public",
+    "with_check": null
+  },
+  {
+    "cmd": "SELECT",
+    "qual": "(is_management() OR (EXISTS ( SELECT 1\n   FROM (user_profiles up\n     JOIN employees e ON ((e.id = up.employee_id)))\n  WHERE ((up.user_id = auth.uid()) AND (e.app_role = ANY (ARRAY['sales'::text, 'presales'::text, 'ar'::text]))))))",
+    "roles": [
+      "public"
+    ],
+    "tablename": "at_demo_scheduling",
+    "permissive": "PERMISSIVE",
+    "policyname": "at_demo_scheduling_read",
+    "schemaname": "public",
+    "with_check": null
+  },
+  {
+    "cmd": "SELECT",
+    "qual": "(is_management() OR (EXISTS ( SELECT 1\n   FROM (user_profiles up\n     JOIN employees e ON ((e.id = up.employee_id)))\n  WHERE ((up.user_id = auth.uid()) AND (e.app_role = ANY (ARRAY['sales'::text, 'ar'::text]))))))",
+    "roles": [
+      "public"
+    ],
+    "tablename": "at_old_collection",
+    "permissive": "PERMISSIVE",
+    "policyname": "at_old_collection_read",
+    "schemaname": "public",
+    "with_check": null
+  },
+  {
+    "cmd": "SELECT",
+    "qual": "(is_management() OR (EXISTS ( SELECT 1\n   FROM (user_profiles up\n     JOIN employees e ON ((e.id = up.employee_id)))\n  WHERE ((up.user_id = auth.uid()) AND ((e.app_role = 'ar'::text) OR ((e.app_role = 'sales'::text) AND (lower(at_after_sales.agent) = lower(e.full_name))) OR ((e.app_role = 'presales'::text) AND (EXISTS ( SELECT 1\n           FROM at_demo_bookings db\n          WHERE ((db.airtable_id = ANY (at_after_sales.student_link_ids)) AND (lower(db.presales_agent) = lower(COALESCE(e.airtable_agent_name, e.full_name))))))))))))",
+    "roles": [
+      "public"
+    ],
+    "tablename": "at_after_sales",
+    "permissive": "PERMISSIVE",
+    "policyname": "at_after_sales_read",
+    "schemaname": "public",
+    "with_check": null
+  },
+  {
+    "cmd": "SELECT",
+    "qual": "(auth.role() = 'authenticated'::text)",
+    "roles": [
+      "public"
+    ],
+    "tablename": "at_employees",
+    "permissive": "PERMISSIVE",
+    "policyname": "at_employees_read",
+    "schemaname": "public",
+    "with_check": null
+  },
+  {
+    "cmd": "SELECT",
+    "qual": "true",
+    "roles": [
+      "public"
+    ],
+    "tablename": "at_sync_runs",
+    "permissive": "PERMISSIVE",
+    "policyname": "at_sync_runs_read",
+    "schemaname": "public",
+    "with_check": null
+  },
+  {
+    "cmd": "SELECT",
+    "qual": "true",
+    "roles": [
+      "public"
+    ],
+    "tablename": "app_settings",
+    "permissive": "PERMISSIVE",
+    "policyname": "app_settings_read",
+    "schemaname": "public",
+    "with_check": null
+  }
+]

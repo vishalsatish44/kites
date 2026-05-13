@@ -1,18 +1,19 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Award, Target, TrendingUp, DollarSign, Sparkles } from 'lucide-react';
 import { useGemini } from '../hooks/useGemini';
-import { useAfterSales, useDemoBookings, useDemoScheduling } from '../hooks/useAirtable';
+import { useAfterSales, useDemoBookings, useDemoScheduling, useOldCollection } from '../hooks/useAirtable';
 import { useAuth } from '../contexts/AuthContext';
 import { useIndividualTargets } from '../hooks/useSupabaseData';
 import { Card, Kpi, Loading, ErrorBox, PageHeader, Pill, ProgressBar } from '../components/ui';
 import { MiniBarChart } from '../components/charts/Charts';
 import { dayjs, isInMonth } from '../lib/dates';
-import { sumBy, filterByMonth } from '../lib/rollups';
+import { sumBy, filterByMonth, mergeSalesAndRenewals } from '../lib/rollups';
 import { formatMoney } from '../lib/currency';
 import { computeSalesIncentive, computePresalesIncentive, evaluateDailyDemoTarget } from '../lib/incentive';
 import { useIncentiveConfigs } from '../hooks/useIncentiveConfig';
 import { APP_ROLES, SALES_AGENTS } from '../lib/schema';
 import { matchAgent } from '../lib/nameMatch';
+import { useFxRates } from '../hooks/useAutoSync';
 
 export default function IndividualDashboard() {
   const { role, employeeName, employeeId, devMode, setDev } = useAuth();
@@ -27,19 +28,24 @@ export default function IndividualDashboard() {
   useEffect(() => { if (employeeName) setAgentName(emp => emp || employeeName); }, [employeeName]);
 
   const sales = useAfterSales();
+  const renewals = useOldCollection();
+  const rates = useFxRates();
   const bookings = useDemoBookings();
   const scheduling = useDemoScheduling();
   const { configs } = useIncentiveConfigs();
   const indTargets = useIndividualTargets(month + '-01');
 
   const data = useMemo(() => {
-    if (!sales.data || !bookings.data || !scheduling.data) return null;
+    if (!sales.data || !renewals.data || !bookings.data || !scheduling.data || !rates.data) return null;
     const me = agentName || employeeName || '';
 
     const isMine = (rowAgent) => matchAgent(me, rowAgent);
     const bookingById = Object.fromEntries(bookings.data.map(b => [b.id, b]));
 
-    const mySales = filterByMonth(sales.data, 'enrollmentDate', monthDate)
+    // Normalize and merge After Sales (New/Cross) and Old Collection (Renewals/Cross-Existing)
+    const combinedSales = mergeSalesAndRenewals(sales.data, renewals.data, rates.data);
+
+    const mySales = filterByMonth(combinedSales, 'enrollmentDate', monthDate)
       .filter(s => {
         if (isMine(s.agent)) return true;
         // Presales attribution: After Sales → studentLinkIds → Demo Booking → presalesAgent
@@ -77,9 +83,9 @@ export default function IndividualDashboard() {
       revenue, aov, conversionPct,
       dayLabels, dayValues,
     };
-  }, [sales.data, bookings.data, scheduling.data, monthDate, agentName, employeeName]);
+  }, [sales.data, renewals.data, rates.data, bookings.data, scheduling.data, monthDate, agentName, employeeName]);
 
-  if (sales.isLoading || bookings.isLoading || scheduling.isLoading) return <Loading />;
+  if (sales.isLoading || renewals.isLoading || bookings.isLoading || scheduling.isLoading) return <Loading />;
   if (sales.error) return <ErrorBox error={sales.error} />;
   if (!data) return null;
 

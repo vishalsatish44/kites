@@ -1,0 +1,172 @@
+[
+  {
+    "schema": "public",
+    "type_kind": "composite",
+    "type_name": "at_employees"
+  },
+  {
+    "schema": "public",
+    "type_kind": "base",
+    "type_name": "_at_employees"
+  },
+  {
+    "schema": "public",
+    "type_kind": "composite",
+    "type_name": "regions"
+  },
+  {
+    "schema": "public",
+    "type_kind": "base",
+    "type_name": "_regions"
+  },
+  {
+    "schema": "public",
+    "type_kind": "composite",
+    "type_name": "employees"
+  },
+  {
+    "schema": "public",
+    "type_kind": "base",
+    "type_name": "_employees"
+  },
+  {
+    "schema": "public",
+    "type_kind": "composite",
+    "type_name": "user_profiles"
+  },
+  {
+    "schema": "public",
+    "type_kind": "base",
+    "type_name": "_user_profiles"
+  },
+  {
+    "schema": "public",
+    "type_kind": "composite",
+    "type_name": "region_targets"
+  },
+  {
+    "schema": "public",
+    "type_kind": "base",
+    "type_name": "_region_targets"
+  },
+  {
+    "schema": "public",
+    "type_kind": "composite",
+    "type_name": "individual_targets"
+  },
+  {
+    "schema": "public",
+    "type_kind": "base",
+    "type_name": "_individual_targets"
+  },
+  {
+    "schema": "public",
+    "type_kind": "composite",
+    "type_name": "attendance"
+  },
+  {
+    "schema": "public",
+    "type_kind": "base",
+    "type_name": "_attendance"
+  },
+  {
+    "schema": "public",
+    "type_kind": "composite",
+    "type_name": "incentive_config"
+  },
+  {
+    "schema": "public",
+    "type_kind": "base",
+    "type_name": "_incentive_config"
+  },
+  {
+    "schema": "public",
+    "type_kind": "composite",
+    "type_name": "user_preferences"
+  },
+  {
+    "schema": "public",
+    "type_kind": "base",
+    "type_name": "_user_preferences"
+  },
+  {
+    "schema": "public",
+    "type_kind": "composite",
+    "type_name": "at_after_sales"
+  },
+  {
+    "schema": "public",
+    "type_kind": "base",
+    "type_name": "_at_after_sales"
+  },
+  {
+    "schema": "public",
+    "type_kind": "composite",
+    "type_name": "at_demo_bookings"
+  },
+  {
+    "schema": "public",
+    "type_kind": "base",
+    "type_name": "_at_demo_bookings"
+  },
+  {
+    "schema": "public",
+    "type_kind": "composite",
+    "type_name": "at_demo_scheduling"
+  },
+  {
+    "schema": "public",
+    "type_kind": "base",
+    "type_name": "_at_demo_scheduling"
+  },
+  {
+    "schema": "public",
+    "type_kind": "composite",
+    "type_name": "at_old_collection"
+  },
+  {
+    "schema": "public",
+    "type_kind": "base",
+    "type_name": "_at_old_collection"
+  },
+  {
+    "schema": "public",
+    "type_kind": "composite",
+    "type_name": "at_sync_runs"
+  },
+  {
+    "schema": "public",
+    "type_kind": "base",
+    "type_name": "_at_sync_runs"
+  },
+  {
+    "schema": "public",
+    "type_kind": "composite",
+    "type_name": "app_settings"
+  },
+  {
+    "schema": "public",
+    "type_kind": "base",
+    "type_name": "_app_settings"
+  },
+  {
+    "schema": "public",
+    "type_kind": "composite",
+    "type_name": "v_last_sync"
+  },
+  {
+    "schema": "public",
+    "type_kind": "base",
+    "type_name": "_v_last_sync"
+  },
+  {
+    "schema": "public",
+    "type_kind": "composite",
+    "type_name": "v_user_profiles_full"
+  },
+  {
+    "schema": "public",
+    "type_kind": "base",
+    "type_name": "_v_user_profiles_full"
+  }
+]

@@ -79,6 +79,37 @@ export function sumBy(rows, key) {
   return rows.reduce((s, r) => s + (Number(r[key]) || 0), 0);
 }
 
+/**
+ * Merges primary sales (After Sales) and renewals (Old Collection) into a unified list.
+ * Normalizes 'enrollmentDate' vs 'paymentDate' and 'agent' vs 'renewedBy'.
+ */
+export function mergeSalesAndRenewals(sales = [], renewals = [], rates = null, toInrFn = null) {
+  const normalizedSales = sales.map(s => ({
+    ...s,
+    type: s.enrollmentType === 'Cross Sale' ? 'cross' : 'new',
+    date: s.enrollmentDate,
+    source: 'After Sales'
+  }));
+
+  const normalizedRenewals = renewals.map(r => {
+    let inr = r.inrAmount;
+    if (!inr && toInrFn && rates) {
+      inr = toInrFn(r.amount, r.currency, rates);
+    }
+    return {
+      ...r,
+      agent: r.renewedBy,
+      enrollmentDate: r.paymentDate,
+      date: r.paymentDate,
+      inrAmount: inr || 0,
+      type: 'renewal',
+      source: 'Old Collection'
+    };
+  });
+
+  return [...normalizedSales, ...normalizedRenewals];
+}
+
 export function countBy(rows, key) {
   const out = {};
   rows.forEach(r => {
