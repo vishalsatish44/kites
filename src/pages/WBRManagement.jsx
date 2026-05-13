@@ -403,8 +403,8 @@ Write a concise, professional WBR narrative (4–6 paragraphs) covering: overall
                           <td>{r.renewedBy}</td>
                           <td>{r.department}</td>
                           <td>{r.classesSold}</td>
-                           <td>{displayCurrency}</td>
-                          <td>{formatMoney(rates ? (r.amount / (rates[r.currency || 'INR'] ?? 1) * (rates[displayCurrency] ?? 1)) : r.amount, displayCurrency)}</td>
+                           <td>{r.currency || '—'}</td>
+                          <td>{formatMoney(r.amount, r.currency || 'INR')}</td>
                           <td>{r.paymentMode || '—'}</td>
                         </tr>
                       ))}

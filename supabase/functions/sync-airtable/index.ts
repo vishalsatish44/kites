@@ -164,7 +164,7 @@ function buildNorms(rates: Record<string, number> | null): Record<string, (rec: 
       classes_sold: num(f['No of classes sold in that payment']),
       classes_monthly: num(f['No of classes sold monthly']),
       currency_label: f['Currency'] || null,
-      currency: ccode(f['Currency']),
+      currency: ccode(f['Currency']) || (f['Currency']?.match(/^[A-Z]{3}$/i) ? f['Currency'].toUpperCase() : null),
       amount: num(f["Amount in customer's currency"]),
       renewed_by: f['Renewal done by'] || null,
       department: f['Department'] || null,

@@ -328,7 +328,8 @@ export function useEmployees() {
 
 function fromMirrorOldCollection(r, rates) {
   const amount = Number(r.amount) || 0;
-  const currency = r.currency || 'INR';
+  const rawLabel = r.currency_label;
+  const currency = r.currency || (rawLabel?.match(/^[A-Z]{3}$/i) ? rawLabel.toUpperCase() : null) || 'INR';
   const inrAmount = toInr(amount, currency, rates);
   return {
     id: r.airtable_id,
@@ -352,7 +353,7 @@ function normalizeOldCollection(rec) {
     classesSold: Number(f[F_OLD_COLLECTION.CLASSES_SOLD]) || 0,
     classesMonthly: Number(f[F_OLD_COLLECTION.CLASSES_MONTHLY]) || 0,
     currencyLabel: f[F_OLD_COLLECTION.CURRENCY] || null,
-    currency: currencyFromLabel(f[F_OLD_COLLECTION.CURRENCY]) || 'INR',
+    currency: currencyFromLabel(f[F_OLD_COLLECTION.CURRENCY]) || (f[F_OLD_COLLECTION.CURRENCY]?.match(/^[A-Z]{3}$/i) ? f[F_OLD_COLLECTION.CURRENCY].toUpperCase() : null) || 'INR',
     amount: Number(f[F_OLD_COLLECTION.AMOUNT]) || 0,
     renewedBy: f[F_OLD_COLLECTION.RENEWED_BY] || '—',
     department: f[F_OLD_COLLECTION.DEPARTMENT] || '—',
