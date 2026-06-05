@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { useAfterSales, useDemoBookings, useEmployees, useOldCollection } from '../hooks/useAirtable';
+import { useAfterSales, useDemoBookings, useDemoScheduling, useEmployees, useOldCollection } from '../hooks/useAirtable';
 import { useAttendance, useIndividualTargets } from '../hooks/useSupabaseData';
 import { useFxRates, toInr } from '../hooks/useAutoSync';
 import { useGemini } from '../hooks/useGemini';
@@ -48,6 +48,7 @@ export default function TeamPerformance() {
 
   const sales = useAfterSales();
   const bookings = useDemoBookings();
+  const scheduling = useDemoScheduling();
   const employees = useEmployees();
   const oldCol = useOldCollection();
   const targets = useIndividualTargets(month + '-01');
@@ -97,7 +98,7 @@ The message should:
   }, [supEmps.data]);
 
   const salesAgg = useMemo(() => sales.data ? salesByAgent(sales.data, monthDate) : [], [sales.data, monthDate]);
-  const presalesAgg = useMemo(() => (sales.data && bookings.data) ? presalesConversion(bookings.data, sales.data, monthDate) : [], [bookings.data, sales.data, monthDate]);
+  const presalesAgg = useMemo(() => (sales.data && bookings.data) ? presalesConversion(bookings.data, sales.data, monthDate, scheduling.data || []) : [], [bookings.data, sales.data, monthDate, scheduling.data]);
 
   const renewalsByAgent = useMemo(() => {
     const g = {};
@@ -159,7 +160,7 @@ The message should:
       });
     }
     if (kind === 'presales' && row) {
-      inc = computePresalesIncentive({ demosBooked: row.demosBooked, demosCompleted: row.demosBooked, salesClosed: row.salesClosed, totalRevenueInr: row.revenue, config: configs.presales });
+      inc = computePresalesIncentive({ demosBooked: row.demosBooked, demosCompleted: row.demosCompleted, salesClosed: row.salesClosed, totalRevenueInr: row.revenue, config: configs.presales });
     }
     return { emp, row, t, att, presentPct, inc };
   };
