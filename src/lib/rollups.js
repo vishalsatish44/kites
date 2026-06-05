@@ -40,8 +40,18 @@ export function salesByAgentPeriod(afterSales, dateRef, mode = 'month') {
   }).sort((a, b) => b.revenue - a.revenue);
 }
 
-export function presalesConversionPeriod(bookings, afterSales, dateRef, mode = 'month') {
+// Count, among the given bookings, how many had a linked Demo Scheduling row
+// marked completed. Shared by the conversion rollups so the displayed
+// conversion % uses the same "completed" denominator as the incentive engine.
+function countCompletedDemos(demos, schedById) {
+  return demos.filter(b =>
+    (b.demoSchedulingLinks || []).some(id => schedById[id]?.isCompleted),
+  ).length;
+}
+
+export function presalesConversionPeriod(bookings, afterSales, dateRef, mode = 'month', scheduling = []) {
   const bookingById = Object.fromEntries(bookings.map(b => [b.id, b]));
+  const schedById = Object.fromEntries((scheduling || []).map(s => [s.id, s]));
   const demosByAgent = groupBy(
     bookings.filter(b =>
       filterByPeriod([b], 'formFillingDate', dateRef, mode).length > 0 ||
@@ -64,12 +74,18 @@ export function presalesConversionPeriod(bookings, afterSales, dateRef, mode = '
   });
   return Object.entries(demosByAgent).map(([agent, demos]) => {
     const s = salesByAgentMap[agent] || { count: 0, revenue: 0 };
+    const demosCompleted = countCompletedDemos(demos, schedById);
+    // Conversion is sales / demos COMPLETED — the same denominator the incentive
+    // engine uses (computePresalesIncentive). Fall back to demos booked only when
+    // no scheduling data was supplied, preserving behaviour for older callers.
+    const denom = scheduling.length ? demosCompleted : demos.length;
     return {
       agent,
       demosBooked: demos.length,
+      demosCompleted,
       salesClosed: s.count,
       revenue: s.revenue,
-      conversionPct: demos.length > 0 ? (s.count / demos.length) * 100 : 0,
+      conversionPct: denom > 0 ? (s.count / denom) * 100 : 0,
       aov: s.count > 0 ? s.revenue / s.count : 0,
     };
   }).sort((a, b) => b.revenue - a.revenue);
@@ -159,14 +175,17 @@ export function demosByPresalesAgent(bookings, scheduling, monthDate) {
     !PRESALES_STOPLIST.has(b.presalesAgent),
   );
   const groups = groupBy(inMonth, 'presalesAgent');
+  // Dispositions seen in Airtable's "Demo Completed": Yes / No / Rescheduled /
+  // Not Interested / (blank). Completion wins; otherwise a clear negative
+  // outcome counts as cancelled; Rescheduled and blanks stay pending.
+  const NEGATIVE = new Set(['No', 'Not Interested', 'Cancelled', 'Canceled']);
   return Object.entries(groups).map(([agent, rows]) => {
     let scheduled = 0, completed = 0, cancelled = 0;
     rows.forEach(b => {
-      const links = b.demoSchedulingLinks || [];
-      const schedRows = links.map(id => schedById[id]).filter(Boolean);
+      const schedRows = (b.demoSchedulingLinks || []).map(id => schedById[id]).filter(Boolean);
       if (schedRows.some(s => s.demoScheduled)) scheduled++;
       if (schedRows.some(s => s.isCompleted)) completed++;
-      if (schedRows.some(s => s.demoCompleted === 'No' || s.reasonNotCompleted)) cancelled++;
+      else if (schedRows.some(s => NEGATIVE.has(s.demoCompleted) || s.reasonNotCompleted)) cancelled++;
     });
     return {
       agent,
@@ -195,8 +214,9 @@ export function dayWiseSales(afterSales, monthDate) {
 
 // Convert Pre-sales / Sales conversions: how many demos by an agent led to sales.
 // Attribution: After Sales.studentLinkIds → Demo Booking record → presalesAgent
-export function presalesConversion(bookings, afterSales, monthDate) {
+export function presalesConversion(bookings, afterSales, monthDate, scheduling = []) {
   const bookingById = Object.fromEntries(bookings.map(b => [b.id, b]));
+  const schedById = Object.fromEntries((scheduling || []).map(s => [s.id, s]));
   const demosByAgent = groupBy(
     bookings.filter(b =>
       isInMonth(b.formFillingDate || b.formFillingTime, monthDate) &&
@@ -223,12 +243,18 @@ export function presalesConversion(bookings, afterSales, monthDate) {
 
   return Object.entries(demosByAgent).map(([agent, demos]) => {
     const s = salesByAgentMap[agent] || { count: 0, revenue: 0 };
+    const demosCompleted = countCompletedDemos(demos, schedById);
+    // Conversion is sales / demos COMPLETED — the same denominator the incentive
+    // engine uses (computePresalesIncentive). Fall back to demos booked only when
+    // no scheduling data was supplied, preserving behaviour for older callers.
+    const denom = scheduling.length ? demosCompleted : demos.length;
     return {
       agent,
       demosBooked: demos.length,
+      demosCompleted,
       salesClosed: s.count,
       revenue: s.revenue,
-      conversionPct: demos.length > 0 ? (s.count / demos.length) * 100 : 0,
+      conversionPct: denom > 0 ? (s.count / denom) * 100 : 0,
       aov: s.count > 0 ? s.revenue / s.count : 0,
     };
   }).sort((a, b) => b.revenue - a.revenue);

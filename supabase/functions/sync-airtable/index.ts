@@ -47,13 +47,14 @@ function toInr(amount: number, currency: string | null, rates: Record<string, nu
   return (amount / (rates[currency] || 1)) * (rates['INR'] || 83);
 }
 
-async function airtableAll(table: string) {
+async function airtableAll(table: string, since?: string | null) {
   const out: any[] = [];
   let offset: string | undefined = undefined;
   do {
     const url = new URL(`https://api.airtable.com/v0/${AT_BASE}/${encodeURIComponent(table)}`);
     url.searchParams.set('pageSize', '100');
     if (offset) url.searchParams.set('offset', offset);
+    if (since) url.searchParams.set('filterByFormula', `IS_AFTER(LAST_MODIFIED_TIME(), '${since}')`);
     const res = await fetch(url, { headers: { Authorization: `Bearer ${AT_KEY}` } });
     if (!res.ok) throw new Error(`Airtable ${table}: ${res.status} ${await res.text()}`);
     const json = await res.json();
@@ -61,6 +62,24 @@ async function airtableAll(table: string) {
     offset = json.offset;
   } while (offset);
   return out;
+}
+
+// Page through a mirror table and collect every airtable_id. PostgREST caps a
+// response at 1000 rows, so we MUST paginate — otherwise rows beyond the first
+// page would look like orphans and get wrongly deleted.
+async function allMirrorIds(client: any, table: string): Promise<Set<string>> {
+  const ids = new Set<string>();
+  let from = 0; const PAGE = 1000;
+  // eslint-disable-next-line no-constant-condition
+  while (true) {
+    const { data, error } = await client.from(table).select('airtable_id').range(from, from + PAGE - 1);
+    if (error) throw new Error(`${table} id scan: ${error.message}`);
+    if (!data || !data.length) break;
+    for (const r of data) ids.add(r.airtable_id);
+    if (data.length < PAGE) break;
+    from += PAGE;
+  }
+  return ids;
 }
 
 function buildNorms(rates: Record<string, number> | null): Record<string, (rec: any) => any> {
@@ -84,7 +103,7 @@ function buildNorms(rates: Record<string, number> | null): Record<string, (rec: 
       team: f['Team Name'] || null,
       lead_channel: f['Lead Channel'] || null,
       lead_source: f['Lead source'] || null,
-      who_booked_demo: null,
+      who_booked_demo: f['Who booked the trial class ?'] || null,
       enrollment_type: f['Type of enrollment'] || null,
       subject: f['Subject Enrolled for'] || null,
       classes_included: num(f['No of classes included in payment']),
@@ -232,13 +251,37 @@ Deno.serve(async (req) => {
   const runId = run?.id;
   const counters: any = { rows_after_sales: 0, rows_demo_bookings: 0, rows_demo_scheduling: 0, rows_old_collection: 0, rows_employees: 0 };
   let hadError: string | null = null;
+  let deletedTotal = 0;
+
+  // Incremental sync: only pull Airtable rows modified since the last successful
+  // run (30s safety buffer). Pass header `x-full-sync: 1` or `?full=1` to force a
+  // FULL reconcile — required to backfill newly-added columns onto old rows and
+  // to re-pull everything. (Even a full sync cannot delete mirror rows that were
+  // removed in Airtable — upsert never deletes; clean those out separately.)
+  const url = new URL(req.url);
+  const forceFull = req.headers.get('x-full-sync') === '1' || url.searchParams.get('full') === '1';
+  let since: string | null = null;
+  if (!forceFull) {
+    const { data: lastRun } = await supabase
+      .from('at_sync_runs')
+      .select('finished_at')
+      .eq('status', 'success')
+      .order('finished_at', { ascending: false })
+      .limit(1)
+      .single();
+    if (lastRun?.finished_at) {
+      const t = new Date(lastRun.finished_at);
+      t.setSeconds(t.getSeconds() - 30);
+      since = t.toISOString();
+    }
+  }
 
   const rates = await fetchFxRates();
   const NORMS = buildNorms(rates);
 
   for (const [airTable, mirror] of Object.entries(MIRROR)) {
     try {
-      const recs = await airtableAll(airTable);
+      const recs = await airtableAll(airTable, since);
       const rows = recs.map(NORMS[airTable]);
       for (let i = 0; i < rows.length; i += 200) {
         const chunk = rows.slice(i, i + 200);
@@ -246,6 +289,22 @@ Deno.serve(async (req) => {
         if (error) throw new Error(`${mirror}: ${error.message}`);
       }
       counters[COUNTER_KEY[airTable]] = rows.length;
+
+      // FULL sync only: drop mirror rows whose Airtable record no longer exists
+      // (upsert never deletes). Skipped on incremental runs — those only fetch
+      // changed rows — and when the pull returned nothing, so a failed or empty
+      // fetch can never wipe the mirror.
+      if (!since && recs.length > 0) {
+        const liveIds = new Set(recs.map((r: any) => r.id));
+        const mirrorIds = await allMirrorIds(supabase, mirror);
+        const orphans = [...mirrorIds].filter((id) => !liveIds.has(id));
+        for (let i = 0; i < orphans.length; i += 100) {
+          const { error } = await supabase.from(mirror).delete().in('airtable_id', orphans.slice(i, i + 100));
+          if (error) throw new Error(`${mirror} orphan delete: ${error.message}`);
+        }
+        if (orphans.length) console.log(`${mirror}: removed ${orphans.length} orphan row(s)`);
+        deletedTotal += orphans.length;
+      }
     } catch (e) {
       console.error(`Failed ${airTable}:`, e);
       hadError = (hadError ? hadError + '; ' : '') + (e as Error).message;
@@ -259,7 +318,7 @@ Deno.serve(async (req) => {
     error_message: hadError,
   }).eq('id', runId);
 
-  return new Response(JSON.stringify({ status: hadError ? 'partial' : 'success', counters, error: hadError }), {
+  return new Response(JSON.stringify({ status: hadError ? 'partial' : 'success', counters, deleted: deletedTotal, error: hadError }), {
     headers: { 'content-type': 'application/json', ...CORS },
   });
 });

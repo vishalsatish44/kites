@@ -47,11 +47,19 @@ async function selectAllChunked(table) {
 function fromMirrorAfterSales(r, rates) {
   const amount = Number(r.amount) || 0;
   const currency = r.currency || 'INR';
-  
-  // PRIMARY FIX: Always recalculate INR amount from the Source Amount and Currency
-  // using current FX rates to ensure accuracy, regardless of what's stored in the mirror column.
-  let inrAmount = toInr(amount, currency, rates);
-  
+
+  // Use the INR figure locked at sale time — mirrored verbatim from Airtable's
+  // own "INR Calculations" / "Collection in INR". That is the authoritative
+  // amount the customer was actually billed and it matches Airtable exactly.
+  // Recomputing with *today's* FX rate (the previous behaviour) re-valued every
+  // historical sale at the current rate, inflating revenue/AOV/incentives and
+  // making them drift daily. Only fall back to a live-FX recompute when the
+  // mirror genuinely has no stored value (older rows synced before this column).
+  const stored = Number(r.inr_amount);
+  const inrAmount = Number.isFinite(stored) && stored > 0
+    ? stored
+    : toInr(amount, currency, rates);
+
   return {
     id: r.airtable_id,
     batchId: r.batch_id,

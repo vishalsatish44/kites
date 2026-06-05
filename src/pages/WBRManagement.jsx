@@ -113,8 +113,8 @@ export default function WBRManagement() {
     [filteredSales, dateRef, periodMode],
   );
   const presalesAgg = useMemo(
-    () => presalesConversionPeriod(filteredBookings, filteredSales, dateRef, periodMode),
-    [filteredBookings, filteredSales, dateRef, periodMode],
+    () => presalesConversionPeriod(filteredBookings, filteredSales, dateRef, periodMode, scheduling.data || []),
+    [filteredBookings, filteredSales, dateRef, periodMode, scheduling.data],
   );
 
   const trendData = useMemo(() => {
@@ -356,7 +356,7 @@ Write a concise, professional WBR narrative (4–6 paragraphs) covering: overall
                   {presalesAgg.map(row => {
                     const inc = computePresalesIncentive({
                       demosBooked: row.demosBooked,
-                      demosCompleted: row.demosBooked,
+                      demosCompleted: row.demosCompleted,
                       salesClosed: row.salesClosed,
                       totalRevenueInr: row.revenue,
                       config: configs.presales,
